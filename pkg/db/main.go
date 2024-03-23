@@ -2,12 +2,13 @@ package db
 
 import (
 	"context"
+	"log"
 
 	"github.com/redis/go-redis/v9"
 )
 
 type Config struct {
-	Addr     string
+	Addr     string `validate:"required"`
 	Password string
 	DB       int
 }
@@ -31,8 +32,14 @@ func getConn() *redis.Client {
 
 	response := conn.Ping(context.Background())
 	if err := response.Err(); err != nil {
-		panic(err)
+		log.Fatalf("failed to get db connection: %v", err)
 	}
 
 	return conn
+}
+
+// Deletes all data in the redis database
+func FlushDB() error {
+	db := getConn()
+	return db.FlushDB(context.Background()).Err()
 }

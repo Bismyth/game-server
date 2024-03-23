@@ -1,0 +1,13 @@
+@import 'node_modules/bulma/sass/utilities/initial-variables.scss';
+
+// Variable overrides here:
+
+@import 'node_modules/bulma/bulma.scss';
+
+.icon-text {
+  flex-wrap: nowrap;
+}
+
+.no-mouse {
+  pointer-events: none;
+}

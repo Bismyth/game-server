@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -28,6 +30,29 @@ const (
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
+	CheckOrigin:     AllowedOriginCheck,
+}
+
+func AllowedOriginCheck(r *http.Request) bool {
+	origin := r.Header["Origin"]
+	if len(origin) == 0 {
+		return true
+	}
+	u, err := url.Parse(origin[0])
+	if err != nil {
+		return false
+	}
+
+	if strings.EqualFold(u.Host, r.Host) {
+		return true
+	}
+
+	// DEV ORIGIN Override
+	if u.Host == "localhost:8080" {
+		return true
+	}
+
+	return false
 }
 
 // Client is a middleman between the websocket connection and the hub.

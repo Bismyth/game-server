@@ -3,6 +3,7 @@ package ws
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/Bismyth/game-server/pkg/db"
@@ -52,31 +53,52 @@ func (h *Hub) Run() {
 				close(client.send)
 			}
 		case message := <-h.broadcast:
-			if message.Type == "id" {
-				h.handleId(message)
-				break
-			}
+			err := h.handleMessageType(message)
+			if err != nil {
+				errorPayload, jErr := json.Marshal(err.Error())
+				if jErr != nil {
+					log.Printf("failed to marshal error to websocket: %v", jErr)
+				}
 
-			if message.client.id == uuid.Nil {
-				break
-			}
+				errorMessage := BaseMessage{
+					Type: "error",
+					Data: errorPayload,
+				}
 
-			switch message.Type {
-			case "createLobby":
-				h.createLobby(message)
-			case "joinLobby":
-				h.joinLobby(message)
-			case "leaveLobby":
-				h.leaveLobby(message)
-			case "chat":
-				h.handleChat(message)
-			case "name":
-				h.handleNameChange(message)
-			default:
-				fmt.Printf("unknown message type")
+				message.client.send <- &errorMessage
 			}
 		}
 	}
+}
+
+func (h *Hub) handleMessageType(message *BaseMessage) error {
+	var err error
+
+	if message.Type == "id" {
+		err = h.handleId(message)
+		return err
+	}
+
+	if message.client.id == uuid.Nil {
+		return fmt.Errorf("no id in message")
+	}
+
+	switch message.Type {
+	case "createLobby":
+		err = h.createLobby(message)
+	case "joinLobby":
+		err = h.joinLobby(message)
+	case "leaveLobby":
+		err = h.leaveLobby(message)
+	case "chat":
+		err = h.handleChat(message)
+	case "name":
+		err = h.handleNameChange(message)
+	default:
+		err = fmt.Errorf("unknown message type")
+	}
+
+	return err
 }
 
 func (h *Hub) handleChat(message *BaseMessage) error {
@@ -84,7 +106,7 @@ func (h *Hub) handleChat(message *BaseMessage) error {
 
 	err := json.Unmarshal(message.Data, &chatMessage)
 	if err != nil {
-		fmt.Println("couldn't unmarshal")
+		return err
 	}
 
 	client, err := db.GetClient(message.client.id)
@@ -124,23 +146,35 @@ func (h *Hub) handleNameChange(message *BaseMessage) error {
 	client.Name = name
 	client.Save()
 
-	return nil
-}
-
-func (h *Hub) handleId(message *BaseMessage) error {
-	var id uuid.UUID
-	err := json.Unmarshal(message.Data, &id)
+	nameBytes, err := json.Marshal(client.Name)
 	if err != nil {
 		return err
 	}
 
-	if client, ok := h.clientIds[id]; ok {
-		close(client.send)
-		delete(h.clients, client)
-		delete(h.clientIds, id)
+	response := BaseMessage{
+		Type: "name",
+		Data: nameBytes,
 	}
 
-	client, err := db.GetClient(id)
+	message.client.send <- &response
+
+	return nil
+}
+
+func (h *Hub) handleId(message *BaseMessage) error {
+	var user InitMessage
+	err := json.Unmarshal(message.Data, &user)
+	if err != nil {
+		return err
+	}
+
+	if client, ok := h.clientIds[user.Id]; ok {
+		close(client.send)
+		delete(h.clients, client)
+		delete(h.clientIds, user.Id)
+	}
+
+	client, err := db.GetClient(user.Id)
 
 	if err != nil {
 		newId, err := uuid.NewV7()
@@ -156,7 +190,12 @@ func (h *Hub) handleId(message *BaseMessage) error {
 
 	message.client.id = client.Id
 
-	data, err := json.Marshal(client.Id.String())
+	initMessage := InitMessage{
+		Id:   client.Id,
+		Name: client.Name,
+	}
+
+	data, err := json.Marshal(&initMessage)
 	if err != nil {
 		return err
 	}
