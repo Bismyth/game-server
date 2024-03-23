@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"log"
 
 	"github.com/Bismyth/game-server/pkg/config"
@@ -16,6 +17,8 @@ var frontendFS embed.FS
 func main() {
 
 	c := config.New()
+
+	fmt.Println(c.Redis.Addr)
 
 	err := db.FlushDB()
 	if err != nil {

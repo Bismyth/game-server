@@ -52,8 +52,9 @@ go.work
 .output/*
 !.output/.gitkeep
 *.db
-config.yml
+*.yml
 *.env
+/config/
 
 #debug artifacts
 __debug_bin*

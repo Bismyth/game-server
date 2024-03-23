@@ -27,8 +27,11 @@ var (
 func New() *Config {
 	var C Config
 
-	if err := k.Load(file.Provider("config.yml"), parser); err != nil {
-		log.Fatalf("error loading config: %v", err)
+	localErr := k.Load(file.Provider("config.yml"), parser)
+	rootErr := k.Load(file.Provider("/config/config.yml"), parser)
+
+	if localErr != nil && rootErr != nil {
+		log.Fatalf("error loading config: %v", rootErr)
 	}
 
 	if err := k.Unmarshal("", &C); err != nil {
