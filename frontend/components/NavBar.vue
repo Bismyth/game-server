@@ -10,7 +10,10 @@ const socket = useSocketStore()
 
 const changeName = () => {
   const username = prompt('Update username:')
-  socket.send('name', username)
+  if (username !== null) {
+    name.sendName(username)
+    socket.send('name', username)
+  }
 }
 </script>
 

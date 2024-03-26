@@ -63,7 +63,7 @@ type Client struct {
 	conn *websocket.Conn
 
 	// Buffered channel of outbound messages.
-	send chan *BaseMessage
+	send chan *OutgoingPacket[struct{}]
 
 	id uuid.UUID
 }
@@ -90,7 +90,7 @@ func (c *Client) readPump() {
 			break
 		}
 
-		decodedMsg := BaseMessage{}
+		decodedMsg := IncomingPacket[json.RawMessage]{}
 		err = json.Unmarshal(message, &decodedMsg)
 		decodedMsg.client = c
 		if err != nil {

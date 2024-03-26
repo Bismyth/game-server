@@ -71,7 +71,7 @@ func (h *Hub) Run() {
 	}
 }
 
-func (h *Hub) handleMessageType(message *BaseMessage) error {
+func (h *Hub) handleMessageType(packet *IncomingPacket) error {
 	var err error
 
 	if message.Type == "id" {
