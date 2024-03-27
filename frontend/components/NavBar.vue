@@ -7,8 +7,9 @@ import api from '@/api'
 const user = useUserStore()
 
 const changeName = () => {
-  const username = prompt('Update username:')
-  if (username !== null) {
+  const username = prompt('Update username:')?.trim()
+
+  if (username) {
     api.user.sendChange({
       id: user.data?.id ?? '',
       name: username,
