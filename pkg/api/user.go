@@ -37,10 +37,10 @@ func SetUserId(requestID uuid.UUID) uuid.UUID {
 // User init event
 const pt_OUserInit OPacketType = "server_user_init"
 
-func SendUserInit(c ClientInterface, userId uuid.UUID) error {
+func UserInitPacket(userId uuid.UUID) []byte {
 	user, err := db.GetUser(userId)
 	if err != nil {
-		log.Println("Failed to initilize user")
+		log.Panic("Failed to initilize user")
 	}
 
 	oData := m_User{
@@ -49,9 +49,8 @@ func SendUserInit(c ClientInterface, userId uuid.UUID) error {
 	}
 
 	oPacket := mp(pt_OUserInit, oData)
-	Send(c, user.Id, &oPacket)
 
-	return nil
+	return MarsahlPacket(&oPacket)
 }
 
 // User change event

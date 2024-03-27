@@ -10,8 +10,12 @@ const ErrorPacketType OPacketType = "server_error"
 
 // TODO: 400 vs 500 class errors
 
-func SendErr(c ClientInterface, clientId uuid.UUID, err error) {
-	errorMessage := mp(ErrorPacketType, err.Error())
+func CreateErrorPacket(err error) Packet[string] {
+	return mp(ErrorPacketType, err.Error())
+}
 
-	Send(c, clientId, &errorMessage)
+func SendErr(c ClientInterface, userId uuid.UUID, err error) {
+	errorMessage := CreateErrorPacket(err)
+
+	Send(c, userId, &errorMessage)
 }

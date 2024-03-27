@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -89,6 +90,22 @@ func (c *Client) readPump() {
 			break
 		}
 
+		if c.id == uuid.Nil {
+			requestedId, err := uuid.Parse(string(message))
+			if err != nil && string(message) != "" {
+				errorPacket := api.CreateErrorPacket(fmt.Errorf("invalid initilization packet received"))
+				c.conn.WriteMessage(websocket.TextMessage, api.MarsahlPacket(&errorPacket))
+				c.hub.unregister <- c
+				break
+			}
+
+			c.id = api.SetUserId(requestedId)
+			// TODO: Check for duplicate connection
+			c.send <- api.UserInitPacket(c.id)
+			c.hub.clientInterface.clientIds[c.id] = c
+			continue
+		}
+
 		iPacket := api.IRawMessage{
 			Message: message,
 			UserId:  c.id,
@@ -119,14 +136,8 @@ func (c *Client) writePump() {
 				return
 			}
 
-			w, err := c.conn.NextWriter(websocket.TextMessage)
+			err := c.conn.WriteMessage(websocket.TextMessage, message)
 			if err != nil {
-				return
-			}
-
-			w.Write(message)
-
-			if err := w.Close(); err != nil {
 				return
 			}
 		case <-ticker.C:
@@ -146,12 +157,7 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	requestedIdString := r.Header.Get("Sec-WebSocket-Protocol")
-	requestedId, _ := uuid.Parse(requestedIdString)
-
-	id := api.SetUserId(requestedId)
-
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256), id: id}
+	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in

@@ -5,19 +5,24 @@ import api from '@/api'
 import { useErrorStore } from './error'
 
 export const useSocketStore = defineStore('socket', () => {
-  const conn = new WebSocket('/ws', api.user.getLocalId() ?? '')
+  const conn = new WebSocket(`ws://${document.location.host}/ws`)
 
   const active = ref(false)
 
   const errorStore = useErrorStore()
 
   const send = (payload: any) => {
+    if (!active.value) {
+      console.error('tried to send to inactive connection', payload)
+      return
+    }
     conn.send(JSON.stringify(payload))
   }
 
   api.setSendMessage(send)
 
-  conn.onopen = (evt) => {
+  conn.onopen = () => {
+    conn.send(api.user.getLocalId() ?? '')
     active.value = true
   }
 

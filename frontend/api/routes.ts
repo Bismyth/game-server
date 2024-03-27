@@ -3,7 +3,7 @@ import error from './error'
 import { IPacketType } from './packetTypes'
 import { z } from 'zod'
 
-const notImplemented = (_: unknown) => {
+const notImplemented = () => {
   console.error('packet type not implemented')
 }
 
