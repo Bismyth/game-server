@@ -32,7 +32,7 @@ func getConn() *redis.Client {
 
 	response := conn.Ping(context.Background())
 	if err := response.Err(); err != nil {
-		log.Fatalf("failed to get db connection: %v", err)
+		log.Panicf("failed to get db connection: %v", err)
 	}
 
 	return conn

@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import DarkModeToggle from '@/components/DarkModeToggle.vue'
-import { useSocketStore } from '@/stores/socket'
 import { useUserStore } from '@/stores/user'
 import { RouterLink } from 'vue-router'
+import api from '@/api'
 
 const user = useUserStore()
-
-const socket = useSocketStore()
 
 const changeName = () => {
   const username = prompt('Update username:')
   if (username !== null) {
-    name.sendName(username)
-    socket.send('name', username)
+    api.user.sendChange({
+      id: user.data?.id ?? '',
+      name: username,
+    })
   }
 }
 </script>

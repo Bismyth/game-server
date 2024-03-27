@@ -1,13 +1,25 @@
-type OutgoingMessage = any // ! TODO: not any
+import { useErrorStore } from '@/stores/error'
+import { z, type ZodTypeAny } from 'zod'
 
-let sendMessage = (message: OutgoingMessage) => {
-  // Todo: Throw error for unintilised sendMessage func
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export let sendMessage = (message: any) => {
+  const error = useErrorStore()
+  error.add({
+    message: 'Send function not initilised.',
+    type: 'danger',
+  })
 }
 
-const setSendMessage = (sendFn: typeof sendMessage) => {
+export const setSendMessage = (sendFn: typeof sendMessage) => {
   sendMessage = sendFn
 }
 
-const handleMessage = (message: string) => {}
+export const parseData = <T extends ZodTypeAny>(data: unknown, schema: T): z.infer<T> => {
+  const result = schema.safeParse(data)
+  if (!result.success) {
+    // some error
+    throw Error('invalid data packet')
+  }
 
-export default { setSendMessage, handleMessage }
+  return result.data
+}

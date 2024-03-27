@@ -1,14 +1,13 @@
 package ws
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
+	"github.com/Bismyth/game-server/pkg/api"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
@@ -63,7 +62,7 @@ type Client struct {
 	conn *websocket.Conn
 
 	// Buffered channel of outbound messages.
-	send chan *OutgoingPacket[struct{}]
+	send chan []byte
 
 	id uuid.UUID
 }
@@ -90,13 +89,12 @@ func (c *Client) readPump() {
 			break
 		}
 
-		decodedMsg := IncomingPacket[json.RawMessage]{}
-		err = json.Unmarshal(message, &decodedMsg)
-		decodedMsg.client = c
-		if err != nil {
-			break
+		iPacket := api.IRawMessage{
+			Message: message,
+			UserId:  c.id,
 		}
-		c.hub.broadcast <- &decodedMsg
+
+		c.hub.broadcast <- &iPacket
 	}
 }
 
@@ -126,11 +124,7 @@ func (c *Client) writePump() {
 				return
 			}
 
-			encoder := json.NewEncoder(w)
-			err = encoder.Encode(message)
-			if err != nil {
-				fmt.Println(err)
-			}
+			w.Write(message)
 
 			if err := w.Close(); err != nil {
 				return
@@ -152,7 +146,12 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := &Client{hub: hub, conn: conn, send: make(chan *BaseMessage, 256)}
+	requestedIdString := r.Header.Get("Sec-WebSocket-Protocol")
+	requestedId, _ := uuid.Parse(requestedIdString)
+
+	id := api.SetUserId(requestedId)
+
+	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256), id: id}
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in
