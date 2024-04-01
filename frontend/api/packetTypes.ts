@@ -4,12 +4,14 @@ export enum IPacketType {
   LobbyChange = 'server_lobby_change',
   UserInit = 'server_user_init',
   UserChange = 'server_user_change',
+  LobbyJoin = 'server_lobby_join',
 }
 
 export enum OPacketType {
   Chat = 'client_chat',
-  CreateLobby = 'client_create_lobby',
-  JoinLobby = 'client_join_lobby',
-  LeaveLobby = 'client_leave_lobby',
+  CreateLobby = 'client_lobby_create',
+  JoinLobby = 'client_lobby_join',
+  LeaveLobby = 'client_lobby_leave',
+  LobbyUsers = 'client_lobby_users',
   UserChange = 'client_user_change',
 }

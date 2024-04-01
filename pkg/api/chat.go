@@ -24,13 +24,13 @@ func handleChat(i HandlerInput) error {
 		return err
 	}
 
-	client, err := db.GetUser(i.UserId)
+	userName, err := db.GetUserName(i.UserId)
 	if err != nil {
 		return err
 	}
 	oChatMessage := m_OChat{
 		Message: iChatMessage.Message,
-		Sender:  client.Name,
+		Sender:  userName,
 	}
 
 	ids, err := db.GetAllUserIds()

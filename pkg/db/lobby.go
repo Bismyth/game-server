@@ -10,39 +10,81 @@ import (
 
 var lobbyHashName = "lobby"
 
-func (c *Lobby) String() string {
-	bytes, err := json.Marshal(c)
-	if err != nil {
-		fmt.Println("failed to marshal lobby to redis")
-		return "undefined"
-	}
+type LobbyUserList map[uuid.UUID]string
 
-	return string(bytes)
+func marshalLobbyUsers(users LobbyUserList) (string, error) {
+	usersString, err := json.Marshal(users)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal user map: %v", err)
+	}
+	return string(usersString), nil
 }
 
-func (l *Lobby) Save() error {
+func CreateLobby(lobbyId uuid.UUID, initialUser uuid.UUID) error {
 	conn := getConn()
 
-	data := l.String()
+	name, err := GetUserName(initialUser)
+	if err != nil {
+		return err
+	}
 
-	err := conn.HSet(context.Background(), lobbyHashName, map[string]interface{}{l.Id.String(): data}).Err()
+	users := LobbyUserList{initialUser: name}
+	usersString, err := marshalLobbyUsers(users)
+	if err != nil {
+		return err
+	}
 
-	return err
+	return conn.HSet(context.Background(), i(lobbyHashName, lobbyId), "users", usersString).Err()
 }
 
-func GetLobby(id uuid.UUID) (*Lobby, error) {
+func GetLobbyUsers(lobbyId uuid.UUID) (LobbyUserList, error) {
 	conn := getConn()
-	data, err := conn.HGet(context.Background(), lobbyHashName, id.String()).Bytes()
+	ctx := context.Background()
+
+	rawUsers, err := conn.HGet(ctx, i(lobbyHashName, lobbyId), "users").Bytes()
+	var users LobbyUserList
+	err = json.Unmarshal(rawUsers, &users)
 	if err != nil {
-		return nil, err
+		return users, err
 	}
 
-	returnLobby := Lobby{Id: id}
+	return users, nil
+}
 
-	err = json.Unmarshal(data, &returnLobby)
+func setLobbyUsers(lobbyId uuid.UUID, users LobbyUserList) error {
+	conn := getConn()
+	ctx := context.Background()
+
+	usersString, err := marshalLobbyUsers(users)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &returnLobby, nil
+	return conn.HSet(ctx, i(lobbyHashName, lobbyId), "users", usersString).Err()
+}
+
+func AddLobbyUser(lobbyId uuid.UUID, userId uuid.UUID) error {
+	users, err := GetLobbyUsers(lobbyId)
+	if err != nil {
+		return err
+	}
+
+	name, err := GetUserName(userId)
+	if err != nil {
+		return err
+	}
+
+	users[userId] = name
+	return setLobbyUsers(lobbyId, users)
+}
+
+func RemoveLobbyUser(lobbyId uuid.UUID, userId uuid.UUID) error {
+	users, err := GetLobbyUsers(lobbyId)
+	if err != nil {
+		return err
+	}
+
+	delete(users, userId)
+
+	return setLobbyUsers(lobbyId, users)
 }

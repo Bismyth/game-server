@@ -94,7 +94,7 @@ func (c *Client) readPump() {
 			requestedId, err := uuid.Parse(string(message))
 			if err != nil && string(message) != "" {
 				errorPacket := api.CreateErrorPacket(fmt.Errorf("invalid initilization packet received"))
-				c.conn.WriteMessage(websocket.TextMessage, api.MarsahlPacket(&errorPacket))
+				c.conn.WriteMessage(websocket.TextMessage, api.MarshalPacket(&errorPacket))
 				c.hub.unregister <- c
 				break
 			}

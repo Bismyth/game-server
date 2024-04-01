@@ -2,70 +2,61 @@ package db
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
+	"log"
 
 	"github.com/google/uuid"
 )
 
 var userHashName = "user"
 
-func (c *User) String() string {
-	bytes, err := json.Marshal(c)
-	if err != nil {
-		fmt.Println("failed to marshal user to redis")
-		return "undefined"
-	}
-
-	return string(bytes)
-}
-
-func (c *User) Save() error {
+func MakeUser(id uuid.UUID, name string) error {
 	conn := getConn()
 
-	data := c.String()
-
-	err := conn.HSet(context.Background(), userHashName, map[string]interface{}{c.Id.String(): data}).Err()
-
-	return err
+	return conn.HSet(context.Background(), i(userHashName, id), "name", name).Err()
 }
 
-func GetUser(id uuid.UUID) (*User, error) {
+func UserExists(id uuid.UUID) bool {
 	conn := getConn()
-	data, err := conn.HGet(context.Background(), userHashName, id.String()).Bytes()
+
+	i, _ := conn.Exists(context.Background(), i(userHashName, id)).Result()
+
+	return i == 1
+}
+
+func GetUserName(id uuid.UUID) (string, error) {
+	conn := getConn()
+	name, err := conn.HGet(context.Background(), i(userHashName, id), "name").Result()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	returnUser := User{Id: id}
+	return name, nil
+}
 
-	err = json.Unmarshal(data, &returnUser)
-	if err != nil {
-		return nil, err
-	}
+func SetUserName(id uuid.UUID, name string) error {
+	conn := getConn()
 
-	return &returnUser, nil
+	return conn.HSet(context.Background(), i(userHashName, id), "name", name).Err()
 }
 
 func GetAllUserIds() ([]uuid.UUID, error) {
 	conn := getConn()
 
-	idStrings, err := conn.HKeys(context.Background(), userHashName).Result()
-	if err != nil {
-		return []uuid.UUID{}, err
-	}
-
-	outputIds := []uuid.UUID{}
+	ids := []uuid.UUID{}
 	idErrors := []error{}
+	ctx := context.Background()
+	iter := conn.Scan(ctx, 0, ia(userHashName), 0).Iterator()
 
-	for _, idString := range idStrings {
-		id, err := uuid.Parse(idString)
+	for iter.Next(ctx) {
+		id, err := uuid.Parse(iter.Val())
 		if err != nil {
 			idErrors = append(idErrors, err)
+			log.Println("Invalid uuid found in all user search")
+			continue
 		}
-		outputIds = append(outputIds, id)
+		ids = append(ids, id)
 	}
 
-	return outputIds, errors.Join(idErrors...)
+	return ids, errors.Join(idErrors...)
 }

@@ -55,7 +55,7 @@ func hp[T any](packet Packet[json.RawMessage]) (*T, error) {
 	return &decoded, nil
 }
 
-func MarsahlPacket[T any](packet *Packet[T]) []byte {
+func MarshalPacket[T any](packet *Packet[T]) []byte {
 	data, err := json.Marshal(packet)
 	if err != nil {
 		log.Printf("failed to marshal api packet: %v", err)
@@ -64,11 +64,11 @@ func MarsahlPacket[T any](packet *Packet[T]) []byte {
 }
 
 func Send[T any](c ClientInterface, clientId uuid.UUID, packet *Packet[T]) {
-	c.Send([]uuid.UUID{clientId}, MarsahlPacket(packet))
+	c.Send([]uuid.UUID{clientId}, MarshalPacket(packet))
 }
 
 func SendMany[T any](c ClientInterface, clientIds []uuid.UUID, packet *Packet[T]) {
-	c.Send(clientIds, MarsahlPacket(packet))
+	c.Send(clientIds, MarshalPacket(packet))
 }
 
 func HandleIncomingMessage(c ClientInterface, m *IRawMessage) {

@@ -6,4 +6,5 @@ var router = map[IPacketType]func(i HandlerInput) error{
 	pt_IJoinLobby:   joinLobby,
 	pt_ILeaveLobby:  leaveLobby,
 	pt_IUserChange:  handleUserChange,
+	pt_ILobbyUsers:  lobbyUsers,
 }

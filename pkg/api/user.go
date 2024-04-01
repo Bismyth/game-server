@@ -17,40 +17,43 @@ type m_User struct {
 var nameGenerator = namegenerator.NewNameGenerator(time.Now().UTC().UnixNano())
 
 func SetUserId(requestID uuid.UUID) uuid.UUID {
-	user, err := db.GetUser(requestID)
+	id := requestID
 
-	if err != nil {
+	if !db.UserExists(id) {
 		newId, err := uuid.NewV7()
 		if err != nil {
 			log.Println("Failed to generate new userId")
 			return uuid.Nil
 		}
 
-		user = &db.User{Id: newId, Name: nameGenerator.Generate()}
+		err = db.MakeUser(newId, nameGenerator.Generate())
+		id = newId
+		if err != nil {
+			log.Println("Failed to make user in redis")
+			id = uuid.Nil
+		}
 	}
 
-	user.Save()
-
-	return user.Id
+	return id
 }
 
 // User init event
 const pt_OUserInit OPacketType = "server_user_init"
 
 func UserInitPacket(userId uuid.UUID) []byte {
-	user, err := db.GetUser(userId)
+	name, err := db.GetUserName(userId)
 	if err != nil {
 		log.Panic("Failed to initilize user")
 	}
 
 	oData := m_User{
-		Id:   user.Id,
-		Name: user.Name,
+		Id:   userId,
+		Name: name,
 	}
 
 	oPacket := mp(pt_OUserInit, oData)
 
-	return MarsahlPacket(&oPacket)
+	return MarshalPacket(&oPacket)
 }
 
 // User change event
@@ -63,16 +66,14 @@ func handleUserChange(i HandlerInput) error {
 		return err
 	}
 
-	user, err := db.GetUser(i.UserId)
+	err = db.SetUserName(i.UserId, iUserChange.Name)
 	if err != nil {
 		return err
 	}
-	user.Name = iUserChange.Name
-	user.Save()
 
 	oUserChange := m_User{
-		Id:   user.Id,
-		Name: user.Name,
+		Id:   i.UserId,
+		Name: iUserChange.Name,
 	}
 
 	oPacket := mp(pt_OUserChange, oUserChange)

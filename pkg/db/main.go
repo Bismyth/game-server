@@ -2,8 +2,10 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"log"
 
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -42,4 +44,12 @@ func getConn() *redis.Client {
 func FlushDB() error {
 	db := getConn()
 	return db.FlushDB(context.Background()).Err()
+}
+
+func i(namespace string, id uuid.UUID) string {
+	return fmt.Sprintf("%s:%s", namespace, id.String())
+}
+
+func ia(namespace string) string {
+	return fmt.Sprintf("%s:*", namespace)
 }
