@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/Bismyth/game-server/pkg/db"
+	"github.com/Bismyth/game-server/pkg/interfaces"
 	"github.com/google/uuid"
 )
 
@@ -80,7 +81,7 @@ func makeLobbyChangePacket(lobbyId uuid.UUID) ([]uuid.UUID, *Packet[[]string]) {
 	return keys, &newMessage
 }
 
-func sendLobbyChange(c ClientInterface, lobbyId uuid.UUID) {
+func sendLobbyChange(c interfaces.Client, lobbyId uuid.UUID) {
 	ids, packet := makeLobbyChangePacket(lobbyId)
 	SendMany(c, ids, packet)
 }

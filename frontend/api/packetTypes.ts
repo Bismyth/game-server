@@ -5,6 +5,9 @@ export enum IPacketType {
   UserInit = 'server_user_init',
   UserChange = 'server_user_change',
   LobbyJoin = 'server_lobby_join',
+  GameEvent = 'server_game_event',
+  GameState = 'server_game_state',
+  GameAction = 'server_game_action',
 }
 
 export enum OPacketType {
@@ -14,4 +17,7 @@ export enum OPacketType {
   LeaveLobby = 'client_lobby_leave',
   LobbyUsers = 'client_lobby_users',
   UserChange = 'client_user_change',
+  GameAction = 'client_game_action',
+  GameNew = 'client_game_new',
+  GameReady = 'client_game_ready',
 }

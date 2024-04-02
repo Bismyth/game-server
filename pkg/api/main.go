@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Bismyth/game-server/pkg/interfaces"
 	"github.com/google/uuid"
 )
 
@@ -29,12 +30,8 @@ type IRawMessage struct {
 	UserId  uuid.UUID
 }
 
-type ClientInterface interface {
-	Send([]uuid.UUID, []byte)
-}
-
 type HandlerInput struct {
-	C      ClientInterface
+	C      interfaces.Client
 	UserId uuid.UUID
 	Packet Packet[json.RawMessage]
 }
@@ -63,15 +60,15 @@ func MarshalPacket[T any](packet *Packet[T]) []byte {
 	return data
 }
 
-func Send[T any](c ClientInterface, clientId uuid.UUID, packet *Packet[T]) {
+func Send[T any](c interfaces.Client, clientId uuid.UUID, packet *Packet[T]) {
 	c.Send([]uuid.UUID{clientId}, MarshalPacket(packet))
 }
 
-func SendMany[T any](c ClientInterface, clientIds []uuid.UUID, packet *Packet[T]) {
+func SendMany[T any](c interfaces.Client, clientIds []uuid.UUID, packet *Packet[T]) {
 	c.Send(clientIds, MarshalPacket(packet))
 }
 
-func HandleIncomingMessage(c ClientInterface, m *IRawMessage) {
+func HandleIncomingMessage(c interfaces.Client, m *IRawMessage) {
 	iPacket := Packet[json.RawMessage]{}
 
 	var returnErr error

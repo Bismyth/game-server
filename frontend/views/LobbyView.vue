@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import api from '@/api'
+import { createGame } from '@/game/liarsdice'
 import { useSocketStore } from '@/stores/socket'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -20,6 +21,10 @@ const leave = () => {
   router.push({ name: 'home' })
 }
 
+const create = () => {
+  createGame(lobbyId.value, { startingDice: 5 })
+}
+
 onMounted(async () => {
   const socket = useSocketStore()
   await socket.isActive
@@ -37,6 +42,7 @@ onUnmounted(() => {
   <div class="container">
     <h1 class="title">Lobby</h1>
     <button class="button" @click="leave">Leave</button>
+    <button class="button" @click="create">Create</button>
 
     <h4 class="title is-size-4 my-4">Users</h4>
     <ul>

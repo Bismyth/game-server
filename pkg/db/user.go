@@ -60,3 +60,54 @@ func GetAllUserIds() ([]uuid.UUID, error) {
 
 	return ids, errors.Join(idErrors...)
 }
+
+func SetUserLobby(id uuid.UUID, lobbyId uuid.UUID) error {
+	conn := getConn()
+	ctx := context.Background()
+
+	err := conn.HDel(ctx, i(userHashName, id), "game").Err()
+	if err != nil {
+		return err
+	}
+
+	err = conn.HSet(ctx, i(userHashName, id), "lobby", lobbyId.String()).Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func SetUserGame(id uuid.UUID, gameId uuid.UUID) error {
+	conn := getConn()
+	ctx := context.Background()
+
+	err := conn.HDel(ctx, i(userHashName, id), "lobby").Err()
+	if err != nil {
+		return err
+	}
+
+	err = conn.HSet(ctx, i(userHashName, id), "game", gameId.String()).Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func IsUserInGame(userId uuid.UUID, gameId uuid.UUID) bool {
+	conn := getConn()
+	ctx := context.Background()
+
+	idString, err := conn.HGet(ctx, i(userHashName, userId), "game").Result()
+	if err != nil {
+		return false
+	}
+
+	id, err := uuid.Parse(idString)
+	if err != nil {
+		return false
+	}
+
+	return id == gameId
+}

@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { IPacketType } from './packetTypes'
 import { handleLobbyChange, handleLobbyJoin } from './lobby'
 import { useErrorStore } from '@/stores/error'
+import { handleGameAction, handleGameEvent, handleGameState } from './game'
 
 const notImplemented = () => {
   console.error('packet type not implemented')
@@ -16,6 +17,9 @@ const routeMap: Record<IPacketType, (data: unknown) => void> = {
   [IPacketType.LobbyChange]: handleLobbyChange,
   [IPacketType.LobbyJoin]: handleLobbyJoin,
   [IPacketType.Error]: error.handle,
+  [IPacketType.GameState]: handleGameState,
+  [IPacketType.GameAction]: handleGameAction,
+  [IPacketType.GameEvent]: handleGameEvent,
 }
 
 const incomingSchema = z.object({
