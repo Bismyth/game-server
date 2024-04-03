@@ -21,19 +21,8 @@ export const useSocketStore = defineStore('socket', () => {
 
   api.setSendMessage(send)
 
-  let isNowActive = () => {}
-  const isActive = new Promise<void>((res, rej) => {
-    if (active.value) {
-      res()
-    }
-
-    isNowActive = res
-  })
-
   conn.onopen = () => {
     conn.send(api.user.getLocalId() ?? '')
-    isNowActive()
-    active.value = true
   }
 
   conn.onclose = () => {
@@ -50,5 +39,5 @@ export const useSocketStore = defineStore('socket', () => {
     api.handleIncomingMessage(evt.data)
   }
 
-  return { conn, send, isActive }
+  return { conn, send, active }
 })

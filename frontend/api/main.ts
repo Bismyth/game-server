@@ -21,6 +21,10 @@ const uuidTest = new RegExp(
 
 export const validateUUID = (id: string) => uuidTest.test(id)
 
+const nilUUID = '00000000-0000-0000-0000-000000000000'
+
+export const isNilUUID = (id: string) => id === nilUUID
+
 export const setSendMessage = (sendFn: typeof sendMessage) => {
   internalSend = sendFn
 }

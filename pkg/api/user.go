@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/Bismyth/game-server/pkg/db"
+	"github.com/Bismyth/game-server/pkg/interfaces"
 	"github.com/google/uuid"
 	"github.com/goombaio/namegenerator"
 )
@@ -41,27 +42,51 @@ func SetUserId(requestID uuid.UUID) uuid.UUID {
 const pt_OUserInit OPacketType = "server_user_init"
 
 func UserInitPacket(userId uuid.UUID) []byte {
-	name, err := db.GetUserName(userId)
+	userMessage, err := makeUserMessage(userId)
 	if err != nil {
-		log.Panic("Failed to initilize user")
+		log.Println("Could not make user correctly")
 	}
 
-	oData := m_User{
-		Id:   userId,
-		Name: name,
-	}
-
-	oPacket := mp(pt_OUserInit, oData)
+	oPacket := mp(pt_OUserInit, userMessage)
 
 	return MarshalPacket(&oPacket)
 }
 
-// User change event
-const pt_IUserChange IPacketType = "client_user_change"
+func makeUserMessage(userId uuid.UUID) (m_User, error) {
+	var user m_User
+	user.Id = userId
+
+	name, err := db.GetUserName(userId)
+	if err != nil {
+		return user, err
+	}
+	user.Name = name
+
+	return user, nil
+}
+
 const pt_OUserChange OPacketType = "server_user_change"
 
-func handleUserChange(i HandlerInput) error {
-	iUserChange, err := hp[m_User](i.Packet)
+type m_UserChange struct {
+	Name string
+}
+
+func sendUserChange(c interfaces.Client, userId uuid.UUID) error {
+	userMessage, err := makeUserMessage(userId)
+	if err != nil {
+		return err
+	}
+
+	oPacket := mp(pt_OUserChange, userMessage)
+	Send(c, userId, &oPacket)
+	return nil
+}
+
+// User change event
+const pt_IUserNameChange IPacketType = "client_user_name_change"
+
+func handleUserNameChange(i HandlerInput) error {
+	iUserChange, err := hp[m_UserChange](i.Packet)
 	if err != nil {
 		return err
 	}
@@ -71,13 +96,19 @@ func handleUserChange(i HandlerInput) error {
 		return err
 	}
 
-	oUserChange := m_User{
-		Id:   i.UserId,
-		Name: iUserChange.Name,
+	err = sendUserChange(i.C, i.UserId)
+	if err != nil {
+		return err
 	}
 
-	oPacket := mp(pt_OUserChange, oUserChange)
-	Send(i.C, i.UserId, &oPacket)
+	ids, err := db.GetUserLobbies(i.UserId)
+	if err != nil {
+		return err
+	}
+
+	for _, lobbyId := range ids {
+		sendLobbyUserChange(i.C, lobbyId)
+	}
 
 	return nil
 }

@@ -2,7 +2,7 @@ import { handleUserChange, handleUserInit } from './user'
 import error from './error'
 import { z } from 'zod'
 import { IPacketType } from './packetTypes'
-import { handleLobbyChange, handleLobbyJoin } from './lobby'
+import { handleLobbyChange } from './lobby'
 import { useErrorStore } from '@/stores/error'
 import { handleGameAction, handleGameEvent, handleGameState } from './game'
 
@@ -15,7 +15,6 @@ const routeMap: Record<IPacketType, (data: unknown) => void> = {
   [IPacketType.UserChange]: handleUserChange,
   [IPacketType.Chat]: notImplemented,
   [IPacketType.LobbyChange]: handleLobbyChange,
-  [IPacketType.LobbyJoin]: handleLobbyJoin,
   [IPacketType.Error]: error.handle,
   [IPacketType.GameState]: handleGameState,
   [IPacketType.GameAction]: handleGameAction,

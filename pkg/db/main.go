@@ -53,3 +53,37 @@ func i(namespace string, id uuid.UUID) string {
 func ia(namespace string) string {
 	return fmt.Sprintf("%s:*", namespace)
 }
+
+func it(namespace string, id uuid.UUID, field string) string {
+	return fmt.Sprintf("%s:%s:%s", namespace, id.String(), field)
+}
+
+func GetHashTableProperties(key string, fields []string) (map[string]interface{}, error) {
+	conn := getConn()
+	ctx := context.Background()
+
+	r, err := conn.HMGet(ctx, key, fields...).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	output := make(map[string]interface{})
+
+	for i, field := range fields {
+		output[field] = r[i]
+	}
+
+	return output, nil
+}
+
+func GetHashTableProperty(key, field string) (string, error) {
+	conn := getConn()
+	ctx := context.Background()
+
+	r, err := conn.HGet(ctx, key, field).Result()
+	if err != nil {
+		return "", err
+	}
+
+	return r, nil
+}

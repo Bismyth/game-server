@@ -8,8 +8,25 @@ import (
 	"github.com/google/uuid"
 )
 
+// All outgoing lobby data
+type m_Lobby struct {
+	Id          uuid.UUID
+	MaxPlayers  int
+	MinPlayers  int
+	Name        string
+	GameType    string
+	GameOptions interface{}
+}
+
+// incoming client lobby change
+type m_LobbyChange struct {
+	MaxPlayers int
+	MinPlayers int
+	Name       string
+	GameType   string
+}
+
 const pt_OLobbyChange OPacketType = "server_lobby_change"
-const pt_OJoinLobby OPacketType = "server_lobby_join"
 
 // Create Lobby Event
 const pt_ICreateLobby IPacketType = "client_lobby_create"
@@ -25,9 +42,6 @@ func createLobby(i HandlerInput) error {
 		return err
 	}
 
-	packet := mp(pt_OJoinLobby, id)
-	Send(i.C, i.UserId, &packet)
-
 	return nil
 }
 
@@ -40,12 +54,9 @@ func joinLobby(i HandlerInput) error {
 		return err
 	}
 
-	db.AddLobbyUser(*lobbyId, i.UserId)
+	db.SaveLobbyUser(*lobbyId, i.UserId)
 
-	packet := mp(pt_OJoinLobby, *lobbyId)
-	Send(i.C, i.UserId, &packet)
-
-	sendLobbyChange(i.C, *lobbyId)
+	sendLobbyUserChange(i.C, *lobbyId)
 
 	return nil
 }
@@ -59,31 +70,38 @@ func lobbyUsers(i HandlerInput) error {
 		return err
 	}
 
-	_, packet := makeLobbyChangePacket(*lobbyId)
+	_, packet := makeLobbyUsersMessage(*lobbyId)
 	Send(i.C, i.UserId, packet)
 
 	return nil
 }
 
-func makeLobbyChangePacket(lobbyId uuid.UUID) ([]uuid.UUID, *Packet[[]string]) {
+func makeLobbyUsersMessage(lobbyId uuid.UUID) ([]uuid.UUID, *Packet[db.LobbyUserList]) {
 	users, err := db.GetLobbyUsers(lobbyId)
 	if err != nil {
 		log.Printf("Failed to retrieve list of users in lobby")
 	}
 	keys := make([]uuid.UUID, 0, len(users))
-	names := make([]string, 0, len(users))
-	for u, name := range users {
+
+	for u := range users {
 		keys = append(keys, u)
-		names = append(names, name)
 	}
 
-	newMessage := mp(pt_OLobbyChange, names)
+	newMessage := mp(pt_OLobbyChange, users)
 	return keys, &newMessage
 }
 
-func sendLobbyChange(c interfaces.Client, lobbyId uuid.UUID) {
-	ids, packet := makeLobbyChangePacket(lobbyId)
+func sendLobbyUserChange(c interfaces.Client, lobbyId uuid.UUID) {
+	ids, packet := makeLobbyUsersMessage(lobbyId)
 	SendMany(c, ids, packet)
+}
+
+func sendToLobbyUser(c interfaces.Client, lobbyId uuid.UUID, userId uuid.UUID) {
+
+}
+
+func sendToLobbyUsers(c interfaces.Client, lobbyId uuid.UUID) {
+
 }
 
 // Leave lobby event
@@ -100,7 +118,7 @@ func leaveLobby(i HandlerInput) error {
 		return err
 	}
 
-	sendLobbyChange(i.C, *lobbyId)
+	sendLobbyUserChange(i.C, *lobbyId)
 
 	return nil
 }

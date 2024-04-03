@@ -1,17 +1,13 @@
 <script setup lang="ts">
 import ld from '@/game/liarsdice'
-import { useSocketStore } from '@/stores/socket'
-import { computed, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { onMounted, ref } from 'vue'
 
-const route = useRoute()
-const gameId = computed(() => route.params.id.toString())
+const props = defineProps<{
+  gameId: string
+}>()
 
 onMounted(async () => {
-  const socket = useSocketStore()
-  await socket.isActive
-
-  ld.create(gameId.value)
+  ld.create(props.gameId)
 })
 
 const currentBid = ref('')

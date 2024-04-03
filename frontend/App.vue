@@ -4,12 +4,17 @@ import NavBar from '@/components/NavBar.vue'
 import ErrorMessage from '@/components/ErrorMessage.vue'
 
 import { useSocketStore } from '@/stores/socket'
+import LoadingView from '@/views/LoadingView.vue'
 
-useSocketStore()
+const socket = useSocketStore()
 </script>
 
 <template>
-  <NavBar />
-  <ErrorMessage />
-  <RouterView />
+  <div v-if="socket.active">
+    <NavBar />
+    <ErrorMessage />
+    <RouterView />
+  </div>
+
+  <LoadingView v-else />
 </template>

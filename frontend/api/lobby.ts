@@ -2,7 +2,6 @@ import { useErrorStore } from '@/stores/error'
 import { parseData, sendMessage, validateUUID } from './main'
 import { OPacketType } from './packetTypes'
 import { z } from 'zod'
-import { useRouter } from 'vue-router'
 import router from '@/router'
 
 const create = () => {
@@ -62,21 +61,16 @@ const users = (id: string) => {
   })
 }
 
-const lobbyUserSchema = z.array(z.string())
+const lobbyUserSchema = z.record(z.string().uuid(), z.string())
 
 export const handleLobbyChange = (data: unknown) => {
   const parsedData = parseData(data, lobbyUserSchema)
   onLobbyChange(parsedData)
 }
 
-const lobbyIdSchema = z.string().uuid()
+export type LobbyUsers = z.infer<typeof lobbyUserSchema>
 
-export const handleLobbyJoin = (data: unknown) => {
-  const parsedData = parseData(data, lobbyIdSchema)
-  router.push({ name: 'lobby', params: { id: parsedData } })
-}
-
-const unsetLobbyChange = (users: string[]) => {
+const unsetLobbyChange = (users: LobbyUsers) => {
   console.error('no method defined')
 }
 

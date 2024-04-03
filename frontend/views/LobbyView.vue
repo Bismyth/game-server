@@ -1,41 +1,17 @@
 <script setup lang="ts">
 import api from '@/api'
 import { createGame } from '@/game/liarsdice'
-import { useSocketStore } from '@/stores/socket'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useLobbyStore } from '@/stores/lobby'
 
-const route = useRoute()
-const router = useRouter()
-
-const lobbyId = computed(() => route.params.id.toString())
-
-const users = ref<string[]>([])
-
-const handleLobbyUserChange = (iUsers: string[]) => {
-  users.value = iUsers
-}
+const lobby = useLobbyStore()
 
 const leave = () => {
-  api.lobby.leave(lobbyId.value)
-  router.push({ name: 'home' })
+  api.lobby.leave(lobby.id)
 }
 
 const create = () => {
-  createGame(lobbyId.value, { startingDice: 5 })
+  createGame(lobby.id, { startingDice: 5 })
 }
-
-onMounted(async () => {
-  const socket = useSocketStore()
-  await socket.isActive
-
-  api.lobby.setOnLobbyChange(handleLobbyUserChange)
-  api.lobby.users(lobbyId.value)
-})
-
-onUnmounted(() => {
-  api.lobby.clearOnLobbyChange()
-})
 </script>
 
 <template>
@@ -46,7 +22,7 @@ onUnmounted(() => {
 
     <h4 class="title is-size-4 my-4">Users</h4>
     <ul>
-      <li v-for="(user, i) in users" :key="i">{{ user }}</li>
+      <li v-for="(key, val) in lobby.users" :key="val">{{ key }}</li>
     </ul>
   </div>
 </template>

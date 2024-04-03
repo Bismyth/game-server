@@ -4,37 +4,23 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
 
 	"github.com/google/uuid"
 )
 
 const gameHashName = "game"
 
-func NewGame(gameType string, players []uuid.UUID) (uuid.UUID, error) {
+func NewGame(lobbyId uuid.UUID, gameType string) (uuid.UUID, error) {
 	conn := getConn()
 	ctx := context.Background()
 
-	newGameId, err := uuid.NewV7()
+	gameId := lobbyId
+	err := conn.HSet(ctx, i(gameHashName, gameId), map[string]string{}).Err()
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("failed to create game id")
+		return gameId, fmt.Errorf("failed to create game")
 	}
 
-	rawPlayers, err := json.Marshal(players)
-	if err != nil {
-		return newGameId, fmt.Errorf("failed to marshal player ids")
-	}
-
-	err = conn.HSet(ctx, i(gameHashName, newGameId), map[string]string{
-		"type":     gameType,
-		"players":  string(rawPlayers),
-		"#players": strconv.Itoa(len(players)),
-	}).Err()
-	if err != nil {
-		return newGameId, fmt.Errorf("failed to create game")
-	}
-
-	return newGameId, nil
+	return gameId, nil
 }
 
 func GetGameType(id uuid.UUID) (string, error) {
@@ -47,25 +33,6 @@ func GetGameType(id uuid.UUID) (string, error) {
 	}
 
 	return gameType, nil
-}
-
-func GetGamePlayers(id uuid.UUID) ([]uuid.UUID, error) {
-	conn := getConn()
-	ctx := context.Background()
-
-	var players []uuid.UUID
-
-	rawPlayers, err := conn.HGet(ctx, i(gameHashName, id), "players").Bytes()
-	if err != nil {
-		return players, fmt.Errorf("could not get game type")
-	}
-
-	err = json.Unmarshal(rawPlayers, &players)
-	if err != nil {
-		return players, fmt.Errorf("could not unmarshal player ids")
-	}
-
-	return players, nil
 }
 
 func SetGameProperty(gameId uuid.UUID, field string, data any) error {
@@ -112,8 +79,8 @@ func GetPlayerProperty[T any](gameId uuid.UUID, playerId uuid.UUID, field string
 	return GetGameProperty[T](gameId, i(field, playerId))
 }
 
-func GetMultiPlayerProperty[T any](gameId uuid.UUID, field string) ([]T, error) {
-	players, err := GetGamePlayers(gameId)
+func GetMultiPlayerProperty[T any](gameId uuid.UUID, field string, playerType string) ([]T, error) {
+	players, err := PlayerTypeGetAll(gameId, playerType)
 	if err != nil {
 		return nil, err
 	}

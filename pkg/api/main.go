@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"reflect"
 
 	"github.com/Bismyth/game-server/pkg/interfaces"
 	"github.com/google/uuid"
+	"github.com/mitchellh/mapstructure"
 )
 
 /*
@@ -92,5 +94,34 @@ func HandleIncomingMessage(c interfaces.Client, m *IRawMessage) {
 	})
 	if returnErr != nil {
 		SendErr(c, m.UserId, returnErr)
+	}
+}
+
+func decode(input, output interface{}) error {
+	config := &mapstructure.DecoderConfig{
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			stringToUUIDHookFunc(),
+		),
+		Result: &output,
+	}
+
+	decoder, err := mapstructure.NewDecoder(config)
+	if err != nil {
+		return err
+	}
+
+	return decoder.Decode(input)
+}
+
+func stringToUUIDHookFunc() mapstructure.DecodeHookFunc {
+	return func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
+		if f.Kind() != reflect.String {
+			return data, nil
+		}
+		if t != reflect.TypeOf(uuid.UUID{}) {
+			return data, nil
+		}
+
+		return uuid.Parse(data.(string))
 	}
 }

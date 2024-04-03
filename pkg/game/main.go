@@ -99,7 +99,7 @@ func New(data json.RawMessage) (uuid.UUID, error) {
 		i++
 	}
 
-	id, err := db.NewGame(newGame.Type, players)
+	id, err := db.NewGame(newGame.LobbyId, newGame.Type, players)
 	if err != nil {
 		return id, err
 	}
@@ -107,10 +107,6 @@ func New(data json.RawMessage) (uuid.UUID, error) {
 	err = h.New(id, newGame.Options)
 	if err != nil {
 		return id, err
-	}
-
-	for _, player := range players {
-		db.SetUserGame(player, id)
 	}
 
 	return id, nil

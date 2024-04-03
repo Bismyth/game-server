@@ -7,7 +7,6 @@ const messages = errorState.messageGetter
 
 const deleteMessage = (e: MouseEvent) => {
   const target = e.target as HTMLButtonElement
-  console.log(target.getAttribute('data-id'))
   let idTarget = parseInt(target.getAttribute('data-id') ?? '')
   if (Number.isInteger(idTarget)) {
     errorState.deleteMessage(idTarget)

@@ -2,92 +2,104 @@ package db
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/google/uuid"
 )
 
-var lobbyHashName = "lobby"
+const lobbyHashName = "lobby"
+const lobbyUsersHashName = "lobbyUsers"
 
 type LobbyUserList map[uuid.UUID]string
 
-func marshalLobbyUsers(users LobbyUserList) (string, error) {
-	usersString, err := json.Marshal(users)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal user map: %v", err)
-	}
-	return string(usersString), nil
-}
-
 func CreateLobby(lobbyId uuid.UUID, initialUser uuid.UUID) error {
 	conn := getConn()
+	ctx := context.Background()
 
-	name, err := GetUserName(initialUser)
+	err := conn.HSet(ctx, i(lobbyHashName, lobbyId), "gameType", "").Err()
 	if err != nil {
 		return err
 	}
 
-	users := LobbyUserList{initialUser: name}
-	usersString, err := marshalLobbyUsers(users)
+	err = SaveLobbyUser(lobbyId, initialUser)
 	if err != nil {
 		return err
 	}
 
-	return conn.HSet(context.Background(), i(lobbyHashName, lobbyId), "users", usersString).Err()
+	return nil
 }
 
 func GetLobbyUsers(lobbyId uuid.UUID) (LobbyUserList, error) {
 	conn := getConn()
 	ctx := context.Background()
 
-	rawUsers, err := conn.HGet(ctx, i(lobbyHashName, lobbyId), "users").Bytes()
+	list := make(LobbyUserList)
+
+	m, err := conn.HGetAll(ctx, i(lobbyUsersHashName, lobbyId)).Result()
 	if err != nil {
-		return nil, err
-	}
-	var users LobbyUserList
-	err = json.Unmarshal(rawUsers, &users)
-	if err != nil {
-		return users, err
+		return list, err
 	}
 
-	return users, nil
+	//validate keys are uuids
+	for k := range m {
+		id, err := uuid.Parse(k)
+		if err != nil {
+			return list, fmt.Errorf("invalid userid in list")
+		}
+
+		name, err := GetUserName(id)
+		if err != nil {
+			return list, fmt.Errorf("failed to get name for user")
+		}
+
+		list[id] = name
+	}
+
+	return list, nil
 }
 
-func setLobbyUsers(lobbyId uuid.UUID, users LobbyUserList) error {
+func SaveLobbyUser(lobbyId uuid.UUID, userId uuid.UUID) error {
 	conn := getConn()
 	ctx := context.Background()
 
-	usersString, err := marshalLobbyUsers(users)
+	err := conn.HSet(ctx, i(lobbyUsersHashName, lobbyId), userId.String(), "").Err()
 	if err != nil {
 		return err
 	}
 
-	return conn.HSet(ctx, i(lobbyHashName, lobbyId), "users", usersString).Err()
-}
-
-func AddLobbyUser(lobbyId uuid.UUID, userId uuid.UUID) error {
-	users, err := GetLobbyUsers(lobbyId)
+	err = SaveUserLobby(userId, lobbyId)
 	if err != nil {
 		return err
 	}
 
-	name, err := GetUserName(userId)
-	if err != nil {
-		return err
-	}
-
-	users[userId] = name
-	return setLobbyUsers(lobbyId, users)
+	return nil
 }
 
 func RemoveLobbyUser(lobbyId uuid.UUID, userId uuid.UUID) error {
-	users, err := GetLobbyUsers(lobbyId)
+	conn := getConn()
+	ctx := context.Background()
+
+	err := conn.HDel(ctx, i(lobbyUsersHashName, lobbyId), userId.String()).Err()
 	if err != nil {
 		return err
 	}
 
-	delete(users, userId)
+	err = RemoveUserLobby(userId, lobbyId)
+	if err != nil {
+		return err
+	}
 
-	return setLobbyUsers(lobbyId, users)
+	return nil
+}
+
+func IsUserInLobby(lobbyId uuid.UUID, userId uuid.UUID) (bool, error) {
+	conn := getConn()
+	ctx := context.Background()
+
+	r, err := conn.HExists(ctx, i(lobbyUsersHashName, lobbyId), userId.String()).Result()
+	if err != nil {
+		return false, err
+	}
+
+	return r, nil
 }

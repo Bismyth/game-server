@@ -1,4 +1,4 @@
-import { setSendMessage, validateUUID } from './main'
+import { setSendMessage, validateUUID, isNilUUID } from './main'
 import { handleIncomingMessage } from './routes'
 import user from './user'
 import lobby from './lobby'
@@ -9,4 +9,5 @@ export default {
   user,
   lobby,
   validateUUID,
+  isNilUUID,
 }

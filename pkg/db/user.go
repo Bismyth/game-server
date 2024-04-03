@@ -8,7 +8,8 @@ import (
 	"github.com/google/uuid"
 )
 
-var userHashName = "user"
+const userHashName = "user"
+const userLobbiesHashName = "userLobbies"
 
 func MakeUser(id uuid.UUID, name string) error {
 	conn := getConn()
@@ -61,16 +62,11 @@ func GetAllUserIds() ([]uuid.UUID, error) {
 	return ids, errors.Join(idErrors...)
 }
 
-func SetUserLobby(id uuid.UUID, lobbyId uuid.UUID) error {
+func SaveUserLobby(userId uuid.UUID, lobbyId uuid.UUID) error {
 	conn := getConn()
 	ctx := context.Background()
 
-	err := conn.HDel(ctx, i(userHashName, id), "game").Err()
-	if err != nil {
-		return err
-	}
-
-	err = conn.HSet(ctx, i(userHashName, id), "lobby", lobbyId.String()).Err()
+	err := conn.SAdd(ctx, i(userLobbiesHashName, userId), lobbyId.String()).Err()
 	if err != nil {
 		return err
 	}
@@ -78,16 +74,11 @@ func SetUserLobby(id uuid.UUID, lobbyId uuid.UUID) error {
 	return nil
 }
 
-func SetUserGame(id uuid.UUID, gameId uuid.UUID) error {
+func RemoveUserLobby(userId uuid.UUID, lobbyId uuid.UUID) error {
 	conn := getConn()
 	ctx := context.Background()
 
-	err := conn.HDel(ctx, i(userHashName, id), "lobby").Err()
-	if err != nil {
-		return err
-	}
-
-	err = conn.HSet(ctx, i(userHashName, id), "game", gameId.String()).Err()
+	err := conn.SRem(ctx, i(userLobbiesHashName, userId), lobbyId.String()).Err()
 	if err != nil {
 		return err
 	}
@@ -95,19 +86,23 @@ func SetUserGame(id uuid.UUID, gameId uuid.UUID) error {
 	return nil
 }
 
-func IsUserInGame(userId uuid.UUID, gameId uuid.UUID) bool {
+func GetUserLobbies(userId uuid.UUID) ([]uuid.UUID, error) {
 	conn := getConn()
 	ctx := context.Background()
 
-	idString, err := conn.HGet(ctx, i(userHashName, userId), "game").Result()
+	idStrings, err := conn.SMembers(ctx, i(userLobbiesHashName, userId)).Result()
 	if err != nil {
-		return false
+		return nil, err
+	}
+	ids := make([]uuid.UUID, len(idStrings))
+
+	for i, idString := range idStrings {
+		id, err := uuid.Parse(idString)
+		if err != nil {
+			return ids, err
+		}
+		ids[i] = id
 	}
 
-	id, err := uuid.Parse(idString)
-	if err != nil {
-		return false
-	}
-
-	return id == gameId
+	return ids, nil
 }

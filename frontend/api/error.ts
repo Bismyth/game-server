@@ -10,7 +10,7 @@ const handle = (data: unknown) => {
   const errorStore = useErrorStore()
   errorStore.add({
     type: 'danger',
-    message: parsedData,
+    message: `Server Error: ${parsedData}`,
   })
 }
 
