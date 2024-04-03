@@ -1,0 +1,17 @@
+services:
+  frontend:
+    build: .
+    networks:
+      - db
+    environment:
+      - REDIS_ADDR=redis:6379
+    ports:
+      - '8080:8080'
+  redis:
+    image: redis:7.2-alpine
+    networks:
+      - db
+
+networks:
+  db:
+    external: false

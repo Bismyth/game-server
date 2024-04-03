@@ -42,6 +42,9 @@ func GetLobbyUsers(lobbyId uuid.UUID) (LobbyUserList, error) {
 	ctx := context.Background()
 
 	rawUsers, err := conn.HGet(ctx, i(lobbyHashName, lobbyId), "users").Bytes()
+	if err != nil {
+		return nil, err
+	}
 	var users LobbyUserList
 	err = json.Unmarshal(rawUsers, &users)
 	if err != nil {

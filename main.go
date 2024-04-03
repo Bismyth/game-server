@@ -1,7 +1,6 @@
 package main
 
 import (
-	"embed"
 	"log"
 
 	"github.com/Bismyth/game-server/pkg/config"
@@ -10,8 +9,7 @@ import (
 	"github.com/Bismyth/game-server/pkg/ws"
 )
 
-//go:embed .output/*
-var frontendFS embed.FS
+//TODO: implement nicer logging library
 
 func main() {
 
@@ -25,6 +23,6 @@ func main() {
 	hub := ws.NewHub()
 	go hub.Run()
 
-	s := server.New(c, hub, frontendFS)
+	s := server.New(c, hub)
 	s.Run()
 }

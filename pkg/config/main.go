@@ -4,43 +4,40 @@ import (
 	"log"
 
 	"github.com/Bismyth/game-server/pkg/db"
+	"github.com/caarlos0/env/v10"
 	"github.com/go-playground/validator/v10"
-	"github.com/knadh/koanf/parsers/yaml"
-	"github.com/knadh/koanf/providers/file"
-	"github.com/knadh/koanf/v2"
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
 	Application struct {
-		Production  bool
-		BindAddress string `validate:"required"`
-	}
+		Production  bool   `env:"PRODUCTION"`
+		PublicDir   string `env:"PUBLIC_DIR"`
+		BindAddress string `env:"ADDRESS"`
+	} `envPrefix:"APPLICATION_"`
 
-	Redis *db.Config `validate:"required"`
+	Redis db.Config `validate:"required" envPrefix:"REDIS_"`
 }
-
-var (
-	k      = koanf.New(".")
-	parser = yaml.Parser()
-)
 
 func New() *Config {
 	var C Config
 
-	localErr := k.Load(file.Provider("config.yml"), parser)
-	rootErr := k.Load(file.Provider("/config/config.yml"), parser)
+	// Docker production defaults
+	C.Application.Production = true
+	C.Application.BindAddress = "0.0.0.0:8080"
+	C.Application.PublicDir = "/public"
 
-	if localErr != nil && rootErr != nil {
-		log.Fatalf("error loading config: %v", rootErr)
+	err := godotenv.Load()
+	if err != nil {
+		log.Printf("No .env file loaded")
 	}
 
-	if err := k.Unmarshal("", &C); err != nil {
-		log.Fatalf("error unmarshalling config: %v", err)
+	if err := env.Parse(&C); err != nil {
+		log.Fatalf("failed to read in config: %v", err)
 	}
 
 	validate := validator.New()
-	err := validate.Struct(C)
-	if err != nil {
+	if err := validate.Struct(C); err != nil {
 		validationErrors := err.(validator.ValidationErrors)
 		log.Fatalf("unable to read from updated config: %v", validationErrors)
 	}

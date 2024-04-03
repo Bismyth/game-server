@@ -1,4 +1,4 @@
-#!/bin.bash
+#!/bin/bash
 
 export $(grep -v '^#' deploy.env | xargs -d '\n')
 docker build . -t $BUILD_TAG

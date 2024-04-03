@@ -10,15 +10,15 @@ import (
 )
 
 type Config struct {
-	Addr     string `validate:"required"`
-	Password string
-	DB       int
+	Addr     string `validate:"required" env:"ADDR"`
+	Password string `env:"PASSWORD"`
+	DB       int    `env:"DB"`
 }
 
 var config *Config = nil
 
-func SetConfig(c *Config) {
-	config = c
+func SetConfig(c Config) {
+	config = &c
 }
 
 var conn *redis.Client

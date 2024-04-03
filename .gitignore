@@ -52,7 +52,6 @@ go.work
 .output/*
 !.output/.gitkeep
 *.db
-*.yml
 *.env
 /config/
 
