@@ -58,6 +58,10 @@ func it(namespace string, id uuid.UUID, field string) string {
 	return fmt.Sprintf("%s:%s:%s", namespace, id.String(), field)
 }
 
+func ic(key string) string {
+	return fmt.Sprintf("%s:cursor", key)
+}
+
 func GetHashTableProperties(key string, fields []string) (map[string]interface{}, error) {
 	conn := getConn()
 	ctx := context.Background()
@@ -86,4 +90,17 @@ func GetHashTableProperty(key, field string) (string, error) {
 	}
 
 	return r, nil
+}
+
+func ParseUUIDList(idStrings []string) ([]uuid.UUID, error) {
+	ids := make([]uuid.UUID, len(idStrings))
+	for i, idString := range idStrings {
+		id, err := uuid.Parse(idString)
+		if err != nil {
+			return ids, err
+		}
+
+		ids[i] = id
+	}
+	return ids, nil
 }

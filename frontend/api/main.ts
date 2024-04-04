@@ -25,6 +25,10 @@ const nilUUID = '00000000-0000-0000-0000-000000000000'
 
 export const isNilUUID = (id: string) => id === nilUUID
 
+export const notImplemented = () => {
+  console.error('not implemented')
+}
+
 export const setSendMessage = (sendFn: typeof sendMessage) => {
   internalSend = sendFn
 }
@@ -33,8 +37,29 @@ export const parseData = <T extends ZodTypeAny>(data: unknown, schema: T): z.inf
   const result = schema.safeParse(data)
   if (!result.success) {
     // some error
+    console.log(result.error.errors)
     throw Error('invalid data packet')
   }
 
   return result.data
+}
+
+export class CallBackFunc<T> {
+  fn: ((a: T) => void) | undefined
+
+  constructor() {
+    this.fn = undefined
+  }
+
+  run(v: T) {
+    if (this.fn === undefined) {
+      console.error('callback not implemented')
+      return
+    }
+    this.fn(v)
+  }
+
+  clear() {
+    this.fn = undefined
+  }
 }

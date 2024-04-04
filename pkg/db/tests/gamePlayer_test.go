@@ -38,7 +38,8 @@ func TestCursor(t *testing.T) {
 		}
 	}
 
-	c := db.NewCursor(gameId, playerType)
+	c := db.GetCursor(gameId, playerType)
+	c.Reset()
 
 	current, err := c.Current()
 	if err != nil {

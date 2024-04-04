@@ -7,12 +7,12 @@ import { useErrorStore } from './error'
 export const useSocketStore = defineStore('socket', () => {
   const conn = new WebSocket(`ws://${document.location.host}/ws`)
 
-  const active = ref(false)
+  const userReady = ref(false)
 
   const errorStore = useErrorStore()
 
   const send = (payload: any) => {
-    if (!active.value) {
+    if (!userReady.value) {
       console.error('tried to send to inactive connection', payload)
       return
     }
@@ -26,8 +26,6 @@ export const useSocketStore = defineStore('socket', () => {
   }
 
   conn.onclose = () => {
-    active.value = false
-
     errorStore.add({
       type: 'danger',
       message: 'No active websocket connection, please reload the page',
@@ -39,5 +37,5 @@ export const useSocketStore = defineStore('socket', () => {
     api.handleIncomingMessage(evt.data)
   }
 
-  return { conn, send, active }
+  return { conn, send, userReady }
 })

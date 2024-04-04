@@ -6,7 +6,6 @@ import (
 
 	"github.com/Bismyth/game-server/pkg/db"
 	"github.com/Bismyth/game-server/pkg/game"
-	"github.com/Bismyth/game-server/pkg/interfaces"
 	"github.com/google/uuid"
 )
 
@@ -20,11 +19,11 @@ const pt_IGameReady IPacketType = "client_game_ready"
 
 type gc struct {
 	GameId uuid.UUID
-	C      interfaces.Client
+	C      Client
 }
 
 func (g *gc) SendEvent(data any) {
-	players, err := db.GetGamePlayers(g.GameId)
+	players, err := db.GetLobbyUserIds(g.GameId)
 	if err != nil {
 		log.Println("could not send event as players couldnt be retrieved")
 	}
@@ -35,7 +34,7 @@ func (g *gc) SendEvent(data any) {
 }
 
 func (g *gc) SendGlobal(data any) {
-	players, err := db.GetGamePlayers(g.GameId)
+	players, err := db.GetLobbyUserIds(g.GameId)
 	if err != nil {
 		log.Println("could not send event as players couldnt be retrieved")
 	}
@@ -56,19 +55,22 @@ func (g *gc) ActionPrompt(playerId uuid.UUID, data any) {
 }
 
 func gameNew(i HandlerInput) error {
-	id, err := game.New(i.Packet.Data)
+	lobbyId, err := hp[uuid.UUID](i.Packet)
+	if err != nil {
+		return err
+	}
+
+	err = game.New(*lobbyId)
 	if err != nil {
 		SendGameErr(i.C, i.UserId, err)
 		return nil
 	}
 
-	players, err := db.GetGamePlayers(id)
+	err = db.SetLobbyProperty(*lobbyId, "inGame", "true")
 	if err != nil {
-		SendGameErr(i.C, i.UserId, err)
+		return err
 	}
-
-	packet := mp(pt_OGameEvent, id)
-	SendMany(i.C, players, &packet)
+	sendLobbyData(i.C, *lobbyId)
 
 	return nil
 }

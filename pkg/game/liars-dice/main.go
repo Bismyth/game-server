@@ -11,13 +11,15 @@ import (
 
 const Code = "liarsdice"
 
+const playerType = "player"
+
 type Handler struct{}
 
 func New() *Handler {
 	return &Handler{}
 }
 
-func (h *Handler) New(gameId uuid.UUID, rawOptions json.RawMessage) error {
+func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) error {
 	var options Options
 	err := json.Unmarshal(rawOptions, &options)
 	if err != nil {
@@ -28,17 +30,8 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions json.RawMessage) error {
 		return err
 	}
 
-	players, err := db.GetGamePlayers(gameId)
+	players, err := db.GetLobbyUserIds(gameId)
 	if err != nil {
-		return err
-	}
-
-	turnIndex := 0
-
-	if err := db.SetGameProperty(gameId, "turn", turnIndex); err != nil {
-		return err
-	}
-	if err := db.SetGameProperty(gameId, "turnId", players[turnIndex]); err != nil {
 		return err
 	}
 
@@ -46,7 +39,11 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions json.RawMessage) error {
 		if err := db.SetPlayerProperty(gameId, player, "dice", options.StartingDice); err != nil {
 			return err
 		}
+		db.PlayerGiveType(gameId, player, playerType)
 	}
+
+	c := db.GetCursor(gameId, playerType)
+	c.Reset()
 
 	rollHands(gameId, players)
 
@@ -64,6 +61,15 @@ func (h *Handler) HandleAction(c interfaces.GameCommunication, gameId uuid.UUID,
 
 	var err error
 
+	cursor := db.GetCursor(gameId, playerType)
+	current, err := cursor.Current()
+	if err != nil {
+		return err
+	}
+	if current != playerId {
+		return fmt.Errorf("not your turn")
+	}
+
 	err = json.Unmarshal(data, &response)
 	if err != nil {
 		return fmt.Errorf("invalid player action")
@@ -77,15 +83,15 @@ func (h *Handler) HandleAction(c interfaces.GameCommunication, gameId uuid.UUID,
 	default:
 		err = fmt.Errorf("unrecognized player option")
 	}
-
 	if err != nil {
 		return err
 	}
 
-	err = incrementPlayerTurn(gameId)
+	nextPlayer, err := cursor.Next()
 	if err != nil {
 		return err
 	}
+
 	err = cachePublicGameState(gameId)
 	if err != nil {
 		return err
@@ -97,13 +103,8 @@ func (h *Handler) HandleAction(c interfaces.GameCommunication, gameId uuid.UUID,
 	}
 	gs := GameState{Public: publicGs}
 
-	activePlayer, err := db.GetGameProperty[uuid.UUID](gameId, "turnId")
-	if err != nil {
-		return err
-	}
-
 	c.SendGlobal(gs)
-	c.ActionPrompt(activePlayer, allActions)
+	c.ActionPrompt(nextPlayer, allActions)
 
 	return nil
 }
@@ -118,7 +119,8 @@ func (h *Handler) HandleReady(c interfaces.GameCommunication, gameId uuid.UUID, 
 		return err
 	}
 
-	activePlayer, err := db.GetGameProperty[uuid.UUID](gameId, "turnId")
+	cursor := db.GetCursor(gameId, playerType)
+	activePlayer, err := cursor.Current()
 	if err != nil {
 		return err
 	}

@@ -1,15 +1,12 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import { gameTypes } from '@/game'
 import { z } from 'zod'
 
 export const userSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
-  lobbyId: z.string().uuid(),
-  gameId: z.string().uuid(),
-  gameType: z.union([z.enum(gameTypes), z.literal('')]),
+  lobbies: z.array(z.string().uuid()).max(1),
 })
 
 export type UserData = z.infer<typeof userSchema>
@@ -21,9 +18,7 @@ export const useUserStore = defineStore('user', () => {
   const data = ref<UserData>({
     id: nilUUID,
     name: 'INVALID',
-    lobbyId: nilUUID,
-    gameId: nilUUID,
-    gameType: '',
+    lobbies: [],
   })
 
   return { data }

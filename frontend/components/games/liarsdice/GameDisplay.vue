@@ -2,12 +2,8 @@
 import ld from '@/game/liarsdice'
 import { onMounted, ref } from 'vue'
 
-const props = defineProps<{
-  gameId: string
-}>()
-
 onMounted(async () => {
-  ld.create(props.gameId)
+  ld.create()
 })
 
 const currentBid = ref('')

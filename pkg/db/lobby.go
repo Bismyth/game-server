@@ -58,6 +58,18 @@ func GetLobbyUsers(lobbyId uuid.UUID) (LobbyUserList, error) {
 	return list, nil
 }
 
+func GetLobbyUserIds(lobbyId uuid.UUID) ([]uuid.UUID, error) {
+	conn := getConn()
+	ctx := context.Background()
+
+	idStrings, err := conn.HKeys(ctx, i(lobbyUsersHashName, lobbyId)).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	return ParseUUIDList(idStrings)
+}
+
 func SaveLobbyUser(lobbyId uuid.UUID, userId uuid.UUID) error {
 	conn := getConn()
 	ctx := context.Background()
@@ -102,4 +114,28 @@ func IsUserInLobby(lobbyId uuid.UUID, userId uuid.UUID) (bool, error) {
 	}
 
 	return r, nil
+}
+
+func GetLobbyProperties(lobbyId uuid.UUID, fields []string) (map[string]interface{}, error) {
+	return GetHashTableProperties(i(lobbyHashName, lobbyId), fields)
+}
+
+func GetLobbyProperty(lobbyId uuid.UUID, field string) (string, error) {
+	return GetHashTableProperty(i(lobbyHashName, lobbyId), field)
+}
+
+type MakeString interface {
+	String() string
+}
+
+func SetLobbyProperty(lobbyId uuid.UUID, field string, value string) error {
+	conn := getConn()
+	ctx := context.Background()
+
+	err := conn.HSet(ctx, i(lobbyHashName, lobbyId), field, value).Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

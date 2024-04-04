@@ -1,8 +1,8 @@
 import { useErrorStore } from '@/stores/error'
-import { parseData, sendMessage, validateUUID } from './main'
-import { OPacketType } from './packetTypes'
+import { CallBackFunc, parseData, sendMessage, validateUUID } from './main'
+import { IPacketType, OPacketType } from './packetTypes'
 import { z } from 'zod'
-import router from '@/router'
+import { gameTypes } from '@/game'
 
 const create = () => {
   sendMessage({
@@ -61,27 +61,73 @@ const users = (id: string) => {
   })
 }
 
-const lobbyUserSchema = z.record(z.string().uuid(), z.string())
+const lobbySchema = z.object({
+  id: z.string().uuid(),
+  maxPlayers: z.number().int().nullable(),
+  minPlayers: z.number().int().nullable(),
+  name: z.string().nullable(),
+  gameType: z.union([z.enum(gameTypes), z.literal('')]).nullable(),
+  inGame: z.boolean().nullable(),
+  gameOptions: z.unknown(),
+})
+
+export type LobbyData = z.infer<typeof lobbySchema>
+const lobbyChangeCB = new CallBackFunc<LobbyData>()
 
 export const handleLobbyChange = (data: unknown) => {
-  const parsedData = parseData(data, lobbyUserSchema)
-  onLobbyChange(parsedData)
+  const parsedData = parseData(data, lobbySchema)
+  lobbyChangeCB.run(parsedData)
 }
+
+const lobbyUserSchema = z.record(z.string().uuid(), z.string())
 
 export type LobbyUsers = z.infer<typeof lobbyUserSchema>
+const lobbyUserChangeCB = new CallBackFunc<LobbyUsers>()
 
-const unsetLobbyChange = (users: LobbyUsers) => {
-  console.error('no method defined')
+export const handleLobbyUserChange = (data: unknown) => {
+  const parsedData = parseData(data, lobbyUserSchema)
+  lobbyUserChangeCB.run(parsedData)
 }
 
-let onLobbyChange = unsetLobbyChange
-
-const setOnLobbyChange = (func: typeof onLobbyChange) => {
-  onLobbyChange = func
+const info = () => {
+  sendMessage({
+    type: OPacketType.LobbyInfo,
+    data: undefined,
+  })
 }
 
-const clearOnLobbyChange = () => {
-  onLobbyChange = unsetLobbyChange
+export const lobbyDataSchema = z.object({
+  id: z.string().uuid(),
+  gameType: z.union([z.literal(''), z.enum(gameTypes)]),
+})
+
+type LobbyDataMessage = z.infer<typeof lobbyDataSchema>
+
+const change = (data: LobbyDataMessage) => {
+  sendMessage({
+    type: OPacketType.LobbyChange,
+    data,
+  })
 }
 
-export default { create, join, leave, users, setOnLobbyChange, clearOnLobbyChange }
+const options = (id: string, data: Record<string, any>) => {
+  sendMessage({
+    type: OPacketType.LobbyOptions,
+    data: {
+      id,
+      data,
+    },
+  })
+}
+
+export default {
+  create,
+  join,
+  leave,
+  users,
+  info,
+  change,
+  options,
+  lobbyUserChangeCB,
+  lobbyChangeCB,
+}

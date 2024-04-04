@@ -8,7 +8,7 @@ import (
 func cachePublicGameState(gameId uuid.UUID) error {
 	gs := PublicGameState{}
 
-	players, err := db.GetGamePlayers(gameId)
+	players, err := db.GetLobbyUserIds(gameId)
 	if err != nil {
 		return err
 	}
@@ -18,11 +18,13 @@ func cachePublicGameState(gameId uuid.UUID) error {
 		return err
 	}
 	gs.HighestBid = hb
-	turnIndex, err := db.GetGameProperty[int](gameId, "turn")
+
+	cursor := db.GetCursor(gameId, playerType)
+	currentPLayer, err := cursor.Current()
 	if err != nil {
 		return err
 	}
-	gs.PlayerTurn = players[turnIndex]
+	gs.PlayerTurn = currentPLayer
 
 	playerDice := map[uuid.UUID]int{}
 

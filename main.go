@@ -9,8 +9,7 @@ import (
 	"github.com/Bismyth/game-server/pkg/ws"
 )
 
-//TODO: implement nicer logging library
-
+// TODO: implement nicer logging library
 func main() {
 
 	c := config.New()

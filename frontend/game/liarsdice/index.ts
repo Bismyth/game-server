@@ -1,9 +1,8 @@
 /* eslint-disable prefer-const */
-import game, { handleGameState } from '@/api/game'
-import { reactive, ref, type Ref } from 'vue'
+import api from '@/api'
+import { useUserStore } from '@/stores/user'
+import { reactive } from 'vue'
 import { z } from 'zod'
-
-const gameType = 'liarsdice'
 
 const publicStateSchema = z.object({
   playerTurn: z.string().uuid(),
@@ -24,17 +23,10 @@ const stateSchema = z.object({
 
 type privateStateT = z.infer<typeof privateStateScehma>
 
-let state: { id: string; type: 'liarsdice' }
-
-const create = (id: string) => {
-  state = {
-    id: id,
-    type: gameType,
-  }
-
-  game.setHandleAction(handleAction)
-  game.setHandleEvent(handleEvent)
-  game.setHandleState(handleState)
+const create = () => {
+  api.game.handleAction.fn = handleAction
+  api.game.handleEvent.fn = handleEvent
+  api.game.handleState.fn = handleState
 
   ready()
 }
@@ -52,15 +44,14 @@ const gameData = reactive<{
 })
 
 const ready = () => {
-  game.ready(state)
+  api.game.ready()
 }
 
 const takeAction = (option: string, data: any) => {
   if (!gameData.isTurn) {
     return
   }
-  game.action(state, option, data)
-  gameData.isTurn = false
+  api.game.action(option, data)
 }
 
 const bid = (bid: string) => {
@@ -86,6 +77,12 @@ const handleState = (data: unknown) => {
   if (result.data.private) {
     gameData.privateState = result.data.private
   }
+
+  const user = useUserStore()
+
+  if (result.data.public) {
+    gameData.isTurn = result.data.public.playerTurn === user.data.id
+  }
 }
 const handleAction = (data: unknown) => {
   const result = z.array(z.string()).safeParse(data)
@@ -94,7 +91,6 @@ const handleAction = (data: unknown) => {
     console.error('bad data')
     return
   }
-  gameData.isTurn = true
   gameData.currentOptions = result.data
 }
 const handleEvent = (data: unknown) => {
@@ -102,11 +98,3 @@ const handleEvent = (data: unknown) => {
 }
 
 export default { create, bid, call, gameData }
-
-const optionsSchema = z.object({
-  startingDice: z.number().int().min(1).max(99),
-})
-
-export const createGame = (lobbyId: string, options: { startingDice: number }) => {
-  game.newGame(gameType, lobbyId, options)
-}

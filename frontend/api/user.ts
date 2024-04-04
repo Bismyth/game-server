@@ -1,30 +1,11 @@
-import { useUserStore, userSchema, type UserData } from '@/stores/user'
-import { isNilUUID, parseData, sendMessage } from './main'
+import { useUserStore, userSchema } from '@/stores/user'
+import { parseData, sendMessage } from './main'
 import { OPacketType } from './packetTypes'
 import { useSocketStore } from '@/stores/socket'
-import router from '@/router'
 import { useLobbyStore } from '@/stores/lobby'
+import router from '@/router'
 
 const idLSKey = 'id'
-
-const handleRouteChange = (user: UserData) => {
-  if (!isNilUUID(user.gameId)) {
-    router.replace({ name: 'game' })
-    return
-  }
-
-  if (!isNilUUID(user.lobbyId)) {
-    router.replace({ name: 'lobby' })
-    return
-  }
-
-  router.replace({ name: 'home' })
-}
-
-const setLobbyStateId = (id: string) => {
-  const lobby = useLobbyStore()
-  lobby.id = id
-}
 
 export const handleUserInit = (data: unknown) => {
   const parsedData = parseData(data, userSchema)
@@ -34,11 +15,16 @@ export const handleUserInit = (data: unknown) => {
   const user = useUserStore()
   user.data = parsedData
 
-  const socket = useSocketStore()
-  socket.active = true
+  const lobbyStore = useLobbyStore()
 
-  setLobbyStateId(user.data.lobbyId)
-  handleRouteChange(user.data)
+  const socket = useSocketStore()
+  socket.userReady = true
+
+  if (user.data.lobbies.length > 0) {
+    lobbyStore.getInfo()
+  } else {
+    router.replace({ name: 'home' })
+  }
 }
 
 export const handleUserChange = (data: unknown) => {
@@ -46,9 +32,6 @@ export const handleUserChange = (data: unknown) => {
 
   const user = useUserStore()
   user.data = parsedData
-
-  setLobbyStateId(user.data.lobbyId)
-  handleRouteChange(user.data)
 }
 
 const getLocalId = () => {

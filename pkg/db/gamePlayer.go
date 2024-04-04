@@ -2,10 +2,13 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 )
 
 func PlayerGiveType(gameId uuid.UUID, playerId uuid.UUID, playerType string) error {
@@ -26,18 +29,58 @@ func PlayerRemType(gameId uuid.UUID, userId uuid.UUID, userType string) error {
 }
 
 func PlayerTypeGetAll(gameId uuid.UUID, playerType string) ([]uuid.UUID, error) {
-	return nil, nil
+
+	conn := getConn()
+	ctx := context.Background()
+
+	idStrings, err := conn.LRange(ctx, it(gameHashName, gameId, playerType), 0, -1).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	return ParseUUIDList(idStrings)
 }
 
 type Cursor struct {
-	index int64
-	key   string
+	key string
 }
 
-func NewCursor(gameId uuid.UUID, t string) *Cursor {
-	return &Cursor{
-		index: 0,
-		key:   it(gameHashName, gameId, t),
+func GetCursor(gameId uuid.UUID, t string) *Cursor {
+	c := &Cursor{
+		key: it(gameHashName, gameId, t),
+	}
+	return c
+}
+
+func (c *Cursor) Reset() {
+	c.SetIndex(0)
+}
+
+func (c *Cursor) GetIndex() int64 {
+	conn := getConn()
+	ctx := context.Background()
+
+	s, err := conn.Get(ctx, ic(c.key)).Result()
+	if errors.Is(err, redis.Nil) {
+		return 0
+	} else if err != nil {
+		log.Panic("failed to get cursor index")
+	}
+
+	i, err := strconv.ParseInt(s, 10, 0)
+	if err != nil {
+		log.Panic("failed to get cursor index")
+	}
+	return i
+}
+
+func (c *Cursor) SetIndex(i int64) {
+	conn := getConn()
+	ctx := context.Background()
+
+	err := conn.Set(ctx, ic(c.key), fmt.Sprintf("%d", i), 0).Err()
+	if err != nil {
+		log.Panic("failed to get cursor index")
 	}
 }
 
@@ -62,7 +105,7 @@ func (c *Cursor) Next() (uuid.UUID, error) {
 }
 
 func (c *Cursor) PeekNext() (uuid.UUID, error) {
-	return c.PeekIndex(c.wrapIndex(c.index + 1))
+	return c.PeekIndex(c.wrapIndex(c.GetIndex() + 1))
 }
 
 func (c *Cursor) Previous() (uuid.UUID, error) {
@@ -71,7 +114,7 @@ func (c *Cursor) Previous() (uuid.UUID, error) {
 }
 
 func (c *Cursor) PeekPrevious() (uuid.UUID, error) {
-	return c.PeekIndex(c.wrapIndex(c.index - 1))
+	return c.PeekIndex(c.wrapIndex(c.GetIndex() - 1))
 }
 
 func (c *Cursor) PeekIndex(i int64) (uuid.UUID, error) {
@@ -92,7 +135,7 @@ func (c *Cursor) PeekIndex(i int64) (uuid.UUID, error) {
 }
 
 func (c *Cursor) Current() (uuid.UUID, error) {
-	return c.PeekIndex(c.index)
+	return c.PeekIndex(c.GetIndex())
 }
 
 // Ends with the cursor on the next value
@@ -116,5 +159,5 @@ func (c *Cursor) Remove() error {
 }
 
 func (c *Cursor) Shift(n int64) {
-	c.index = c.wrapIndex(c.index + n)
+	c.SetIndex(c.wrapIndex(c.GetIndex() + n))
 }

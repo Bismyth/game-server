@@ -10,19 +10,6 @@ import (
 
 const gameHashName = "game"
 
-func NewGame(lobbyId uuid.UUID, gameType string) (uuid.UUID, error) {
-	conn := getConn()
-	ctx := context.Background()
-
-	gameId := lobbyId
-	err := conn.HSet(ctx, i(gameHashName, gameId), map[string]string{}).Err()
-	if err != nil {
-		return gameId, fmt.Errorf("failed to create game")
-	}
-
-	return gameId, nil
-}
-
 func GetGameType(id uuid.UUID) (string, error) {
 	conn := getConn()
 	ctx := context.Background()

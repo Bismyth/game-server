@@ -7,36 +7,6 @@ import (
 	"github.com/google/uuid"
 )
 
-func incrementPlayerTurn(gameId uuid.UUID) error {
-	numPlayers, err := db.GetGameProperty[int](gameId, "#players")
-	if err != nil {
-		return err
-	}
-	index, err := db.GetGameProperty[int](gameId, "turn")
-	if err != nil {
-		return err
-	}
-
-	index++
-	index = index % numPlayers
-	err = db.SetGameProperty(gameId, "turn", index)
-	if err != nil {
-		return err
-	}
-
-	players, err := db.GetGamePlayers(gameId)
-	if err != nil {
-		return err
-	}
-
-	err = db.SetGameProperty(gameId, "turnId", players[index])
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func rollHands(gameId uuid.UUID, players []uuid.UUID) error {
 	for _, playerId := range players {
 		numDice, err := db.GetPlayerProperty[int](gameId, playerId, "dice")

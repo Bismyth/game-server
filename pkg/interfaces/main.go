@@ -4,10 +4,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type Client interface {
-	Send([]uuid.UUID, []byte)
-}
-
 type GameCommunication interface {
 	SendEvent(data any)
 	SendGlobal(data any)

@@ -6,7 +6,6 @@ import (
 	"log"
 	"reflect"
 
-	"github.com/Bismyth/game-server/pkg/interfaces"
 	"github.com/google/uuid"
 	"github.com/mitchellh/mapstructure"
 )
@@ -32,8 +31,12 @@ type IRawMessage struct {
 	UserId  uuid.UUID
 }
 
+type Client interface {
+	Send([]uuid.UUID, []byte)
+}
+
 type HandlerInput struct {
-	C      interfaces.Client
+	C      Client
 	UserId uuid.UUID
 	Packet Packet[json.RawMessage]
 }
@@ -62,15 +65,15 @@ func MarshalPacket[T any](packet *Packet[T]) []byte {
 	return data
 }
 
-func Send[T any](c interfaces.Client, clientId uuid.UUID, packet *Packet[T]) {
+func Send[T any](c Client, clientId uuid.UUID, packet *Packet[T]) {
 	c.Send([]uuid.UUID{clientId}, MarshalPacket(packet))
 }
 
-func SendMany[T any](c interfaces.Client, clientIds []uuid.UUID, packet *Packet[T]) {
+func SendMany[T any](c Client, clientIds []uuid.UUID, packet *Packet[T]) {
 	c.Send(clientIds, MarshalPacket(packet))
 }
 
-func HandleIncomingMessage(c interfaces.Client, m *IRawMessage) {
+func HandleIncomingMessage(c Client, m *IRawMessage) {
 	iPacket := Packet[json.RawMessage]{}
 
 	var returnErr error
@@ -100,7 +103,7 @@ func HandleIncomingMessage(c interfaces.Client, m *IRawMessage) {
 func decode(input, output interface{}) error {
 	config := &mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
-			stringToUUIDHookFunc(),
+			customStringParsing(),
 		),
 		Result: &output,
 	}
@@ -113,15 +116,20 @@ func decode(input, output interface{}) error {
 	return decoder.Decode(input)
 }
 
-func stringToUUIDHookFunc() mapstructure.DecodeHookFunc {
+func customStringParsing() mapstructure.DecodeHookFunc {
 	return func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
 		if f.Kind() != reflect.String {
 			return data, nil
 		}
-		if t != reflect.TypeOf(uuid.UUID{}) {
+
+		switch t {
+		case reflect.TypeOf(uuid.UUID{}):
+			return uuid.Parse(data.(string))
+		case reflect.TypeOf(true):
+			return data.(string) == "true", nil
+		default:
 			return data, nil
 		}
 
-		return uuid.Parse(data.(string))
 	}
 }

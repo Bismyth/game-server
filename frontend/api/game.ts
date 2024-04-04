@@ -1,95 +1,64 @@
 import { z } from 'zod'
-import { sendMessage } from './main'
+import { CallBackFunc, sendMessage } from './main'
 import { OPacketType } from './packetTypes'
 import { useErrorStore } from '@/stores/error'
+import { useLobbyStore } from '@/stores/lobby'
 
-const undefinedFn = (data: unknown) => {
-  console.error('not linked')
-}
-
-let ha = undefinedFn
+const handleAction = new CallBackFunc<unknown>()
 export const handleGameAction = (data: unknown) => {
-  ha(data)
+  handleAction.run(data)
 }
 
-let he = undefinedFn
+const handleEvent = new CallBackFunc<unknown>()
 export const handleGameEvent = (data: unknown) => {
-  he(data)
+  handleEvent.run(data)
 }
 
-let hs = undefinedFn
+const handleState = new CallBackFunc<unknown>()
 export const handleGameState = (data: unknown) => {
-  hs(data)
+  handleState.run(data)
 }
 
-const setHandleAction = (fn: typeof handleGameAction) => {
-  ha = fn
-}
-
-const setHandleEvent = (fn: typeof handleGameAction) => {
-  he = fn
-}
-
-const setHandleState = (fn: typeof handleGameAction) => {
-  hs = fn
-}
-
-const newGame = (gameType: string, lobbyId: string, options: any) => {
-  const validId = z.string().uuid().parse(lobbyId)
-
-  sendMessage({
-    type: OPacketType.GameNew,
-    data: {
-      type: gameType,
-      lobbyId: validId,
-      options,
-    },
-  })
-}
-
-const sharedStateSchema = z.object({
-  id: z.string().uuid(),
-  type: z.string(),
-})
-
-const action = (sharedState: { id: string; type: string }, option: string, data: any) => {
+const newGame = (lobbyId: string) => {
   const es = useErrorStore()
 
-  const result = sharedStateSchema.safeParse(sharedState)
+  const result = z.string().uuid().safeParse(lobbyId)
   if (!result.success) {
     es.add({
       type: 'warning',
-      message: 'could not parse shared state',
+      message: 'invalid lobbyid to start game',
     })
     return
   }
 
   sendMessage({
+    type: OPacketType.GameNew,
+    data: lobbyId,
+  })
+}
+
+const action = (option: string, data: any) => {
+  const lobby = useLobbyStore()
+
+  sendMessage({
     type: OPacketType.GameAction,
     data: {
-      ...result.data,
+      id: lobby.id,
       option,
       data,
     },
   })
 }
 
-const ready = (sharedState: { id: string; type: string }) => {
-  const es = useErrorStore()
-
-  const result = sharedStateSchema.safeParse(sharedState)
-  if (!result.success) {
-    es.add({
-      type: 'warning',
-      message: 'could not parse shared state',
-    })
-    return
-  }
+const ready = () => {
+  const lobby = useLobbyStore()
 
   sendMessage({
     type: OPacketType.GameReady,
-    data: result.data,
+    data: {
+      id: lobby.id,
+    },
   })
 }
 
-export default { newGame, action, ready, setHandleAction, setHandleEvent, setHandleState }
+export default { newGame, action, ready, handleAction, handleEvent, handleState }

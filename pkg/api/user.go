@@ -5,14 +5,14 @@ import (
 	"time"
 
 	"github.com/Bismyth/game-server/pkg/db"
-	"github.com/Bismyth/game-server/pkg/interfaces"
 	"github.com/google/uuid"
 	"github.com/goombaio/namegenerator"
 )
 
 type m_User struct {
-	Id   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
+	Id       uuid.UUID   `json:"id"`
+	Name     string      `json:"name"`
+	LobbyIds []uuid.UUID `json:"lobbies"`
 }
 
 var nameGenerator = namegenerator.NewNameGenerator(time.Now().UTC().UnixNano())
@@ -62,6 +62,12 @@ func makeUserMessage(userId uuid.UUID) (m_User, error) {
 	}
 	user.Name = name
 
+	lobbies, err := db.GetUserLobbies(userId)
+	if err != nil {
+		return user, err
+	}
+	user.LobbyIds = lobbies
+
 	return user, nil
 }
 
@@ -71,7 +77,7 @@ type m_UserChange struct {
 	Name string
 }
 
-func sendUserChange(c interfaces.Client, userId uuid.UUID) error {
+func sendUserChange(c Client, userId uuid.UUID) error {
 	userMessage, err := makeUserMessage(userId)
 	if err != nil {
 		return err

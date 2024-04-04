@@ -10,7 +10,7 @@ const socket = useSocketStore()
 </script>
 
 <template>
-  <div v-if="socket.active">
+  <div v-if="socket.userReady">
     <NavBar />
     <ErrorMessage />
     <RouterView />
