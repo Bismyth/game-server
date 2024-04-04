@@ -13,6 +13,7 @@ export const useLobbyStore = defineStore('lobby', () => {
   const inGame = ref(false)
   const users = ref<LobbyUsers>({})
   const ready = ref(false)
+  const options = ref<any>()
 
   const handleLobbyUserChange = (iUsers: LobbyUsers) => {
     users.value = iUsers
@@ -41,7 +42,14 @@ export const useLobbyStore = defineStore('lobby', () => {
     }
 
     if (d.gameType) {
-      gameType.value = d.gameType
+      if (gameType.value !== d.gameType) {
+        options.value = undefined
+        gameType.value = d.gameType
+      }
+    }
+
+    if (d.gameOptions) {
+      options.value = JSON.parse(d.gameOptions)
     }
 
     if (d.inGame !== inGame.value) {
@@ -67,5 +75,5 @@ export const useLobbyStore = defineStore('lobby', () => {
     clear()
   }
 
-  return { id, users, gameType, inGame, ready, getInfo, clear, leave }
+  return { id, users, gameType, inGame, ready, options, getInfo, clear, leave }
 })

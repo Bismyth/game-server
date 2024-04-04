@@ -1,8 +1,6 @@
-@import 'node_modules/bulma/sass/utilities/initial-variables.scss';
-
-// Variable overrides here:
-
-@import 'node_modules/bulma/bulma.scss';
+@use 'bulma/sass' with (
+  $modal-content-width: 50rem
+);
 
 .icon-text {
   flex-wrap: nowrap;

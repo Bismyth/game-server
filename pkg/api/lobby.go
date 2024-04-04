@@ -17,7 +17,7 @@ type m_Lobby struct {
 	Name       *string     `json:"name"`
 	GameType   *string     `json:"gameType"`
 	InGame     *bool       `json:"inGame"`
-	Options    interface{} `json:"options"`
+	Options    interface{} `json:"gameOptions"`
 }
 
 // incoming client lobby change

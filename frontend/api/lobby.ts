@@ -68,7 +68,7 @@ const lobbySchema = z.object({
   name: z.string().nullable(),
   gameType: z.union([z.enum(gameTypes), z.literal('')]).nullable(),
   inGame: z.boolean().nullable(),
-  gameOptions: z.unknown(),
+  gameOptions: z.string().nullable(),
 })
 
 export type LobbyData = z.infer<typeof lobbySchema>

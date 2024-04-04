@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 
-type ErrorMessage = {
+export type ErrorMessage = {
   message: string
   type: 'warning' | 'danger'
   noexpire?: boolean
