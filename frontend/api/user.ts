@@ -16,7 +16,6 @@ export const handleUserInit = (data: unknown) => {
   user.data = parsedData
 
   const lobbyStore = useLobbyStore()
-
   const socket = useSocketStore()
   socket.userReady = true
 

@@ -45,7 +45,7 @@ watch(
 </script>
 
 <template>
-  <div class="container">
+  <div class="container" v-if="lobby.ready">
     <h1 class="title">Lobby</h1>
     <button class="button" @click="leave">Leave</button>
     <button class="button" @click="create">Create</button>
@@ -61,4 +61,5 @@ watch(
       <li v-for="(key, val) in lobby.users" :key="val">{{ key }}</li>
     </ul>
   </div>
+  <div v-else>Loading...</div>
 </template>

@@ -12,6 +12,7 @@ export const useLobbyStore = defineStore('lobby', () => {
   const gameType = ref<GameTypes | ''>('')
   const inGame = ref(false)
   const users = ref<LobbyUsers>({})
+  const ready = ref(false)
 
   const handleLobbyUserChange = (iUsers: LobbyUsers) => {
     users.value = iUsers
@@ -19,6 +20,8 @@ export const useLobbyStore = defineStore('lobby', () => {
   api.lobby.lobbyUserChangeCB.fn = handleLobbyUserChange
 
   const handleLobbyChange = (d: LobbyData) => {
+    ready.value = true
+
     if (!api.isNilUUID(d.id)) {
       if (api.isNilUUID(id.value)) {
         api.lobby.users(d.id)
@@ -56,6 +59,7 @@ export const useLobbyStore = defineStore('lobby', () => {
     gameType.value = ''
     users.value = {}
     inGame.value = false
+    ready.value = false
   }
 
   const leave = () => {
@@ -63,5 +67,5 @@ export const useLobbyStore = defineStore('lobby', () => {
     clear()
   }
 
-  return { id, users, gameType, inGame, getInfo, clear, leave }
+  return { id, users, gameType, inGame, ready, getInfo, clear, leave }
 })

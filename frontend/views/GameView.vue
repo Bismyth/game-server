@@ -30,6 +30,6 @@ const GameRender = defineAsyncComponent({
 </script>
 
 <template>
-  <div v-if="!lobby.inGame">Loading...</div>
+  <div v-if="!lobby.ready">Loading...</div>
   <GameRender v-else />
 </template>
