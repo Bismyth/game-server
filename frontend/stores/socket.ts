@@ -22,7 +22,7 @@ export const useSocketStore = defineStore('socket', () => {
   api.setSendMessage(send)
 
   conn.onopen = () => {
-    conn.send(api.user.getLocalId() ?? '')
+    conn.send(api.user.getLocalToken() ?? '')
   }
 
   conn.onclose = () => {

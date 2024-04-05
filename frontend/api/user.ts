@@ -5,12 +5,12 @@ import { useSocketStore } from '@/stores/socket'
 import { useLobbyStore } from '@/stores/lobby'
 import router from '@/router'
 
-const idLSKey = 'id'
+const idLSKey = 'id_token'
 
 export const handleUserInit = (data: unknown) => {
   const parsedData = parseData(data, userSchema)
 
-  localStorage.setItem(idLSKey, parsedData.id ?? 'wrong uuid')
+  localStorage.setItem(idLSKey, parsedData.token ?? '')
 
   const user = useUserStore()
   user.data = parsedData
@@ -33,7 +33,7 @@ export const handleUserChange = (data: unknown) => {
   user.data = parsedData
 }
 
-const getLocalId = () => {
+const getLocalToken = () => {
   return localStorage.getItem(idLSKey)
 }
 
@@ -46,4 +46,4 @@ const sendNameChange = (name: string) => {
   })
 }
 
-export default { getLocalId, sendNameChange }
+export default { getLocalToken, sendNameChange }

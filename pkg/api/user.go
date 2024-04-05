@@ -13,6 +13,7 @@ type m_User struct {
 	Id       uuid.UUID   `json:"id"`
 	Name     string      `json:"name"`
 	LobbyIds []uuid.UUID `json:"lobbies"`
+	Token    string      `json:"token"`
 }
 
 var nameGenerator = namegenerator.NewNameGenerator(time.Now().UTC().UnixNano())
@@ -46,6 +47,13 @@ func UserInitPacket(userId uuid.UUID) []byte {
 	if err != nil {
 		log.Println("Could not make user correctly")
 	}
+	t, err := GenerateToken(userId)
+	if err != nil {
+		log.Println(err)
+		log.Println("failed to make jwt token")
+	}
+
+	userMessage.Token = t
 
 	oPacket := mp(pt_OUserInit, userMessage)
 

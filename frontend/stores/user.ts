@@ -7,6 +7,7 @@ export const userSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
   lobbies: z.array(z.string().uuid()).max(1),
+  token: z.string().nullable(),
 })
 
 export type UserData = z.infer<typeof userSchema>
@@ -19,6 +20,7 @@ export const useUserStore = defineStore('user', () => {
     id: nilUUID,
     name: 'INVALID',
     lobbies: [],
+    token: null,
   })
 
   return { data }
