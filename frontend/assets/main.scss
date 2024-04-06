@@ -1,11 +1,62 @@
+$purple: #6c0f6a;
+
 @use 'bulma/sass' with (
-  $modal-content-width: 50rem
+  $modal-content-width: 50rem,
+  $primary: $purple
 );
 
 .icon-text {
   flex-wrap: nowrap;
 }
 
+.logo {
+  fill: $purple;
+}
+
 .no-mouse {
   pointer-events: none;
+}
+
+.centerize {
+  display: flex;
+  justify-content: center;
+  align-content: center;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.centerize > .container {
+  flex-grow: 0;
+}
+
+.logo-header {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.logo-header > .outer {
+  width: 75px;
+}
+
+.b-primary {
+  border: $purple 1px solid;
+}
+
+.name {
+  flex: 1 1 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.name > .box {
+  max-width: 800px;
+  margin: auto;
+  width: 100%;
+}
+
+.box.wrapper {
+  display: flex;
+  flex-direction: column;
 }

@@ -4,14 +4,16 @@ import { IPacketType, OPacketType } from './packetTypes'
 import { z } from 'zod'
 import { gameTypes } from '@/game'
 
-const create = () => {
+const create = (name?: string) => {
   sendMessage({
     type: OPacketType.CreateLobby,
-    data: null,
+    data: {
+      name,
+    },
   })
 }
 
-const join = (id: string) => {
+const join = (id: string, name?: string) => {
   const es = useErrorStore()
   if (!validateUUID(id)) {
     es.add({
@@ -23,7 +25,10 @@ const join = (id: string) => {
 
   sendMessage({
     type: OPacketType.JoinLobby,
-    data: id,
+    data: {
+      id,
+      name,
+    },
   })
 }
 

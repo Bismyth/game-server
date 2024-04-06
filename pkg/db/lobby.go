@@ -116,6 +116,18 @@ func IsUserInLobby(lobbyId uuid.UUID, userId uuid.UUID) (bool, error) {
 	return r, nil
 }
 
+func LobbyExists(lobbyId uuid.UUID) (bool, error) {
+	conn := getConn()
+	ctx := context.Background()
+
+	r, err := conn.Exists(ctx, i(lobbyHashName, lobbyId)).Result()
+	if err != nil {
+		return false, err
+	}
+
+	return r == 1, nil
+}
+
 func GetLobbyProperties(lobbyId uuid.UUID, fields []string) (map[string]interface{}, error) {
 	return GetHashTableProperties(i(lobbyHashName, lobbyId), fields)
 }

@@ -16,7 +16,7 @@ const create = () => {
 }
 
 const shareLink = () => {
-  navigator.clipboard.writeText(`${window.location.origin}/lobby/join/${lobby.id}`)
+  navigator.clipboard.writeText(`${window.location.origin}/?id=${lobby.id}`)
 }
 </script>
 

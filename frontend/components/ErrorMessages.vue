@@ -17,7 +17,7 @@ const deleteMessage = (e: MouseEvent) => {
 </script>
 
 <template>
-  <div class="container mb-3">
+  <div class="container">
     <div
       v-for="(message, id) in messages"
       :key="id"

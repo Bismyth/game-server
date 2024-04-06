@@ -30,14 +30,7 @@ func VerifyToken(t string) (uuid.UUID, error) {
 		return signingKey, nil
 	})
 
-	if err != nil {
-		if err == jwt.ErrSignatureInvalid {
-			return uuid.Nil, nil
-		}
-		return uuid.Nil, err
-	}
-
-	if !token.Valid {
+	if err != nil || !token.Valid {
 		return uuid.Nil, nil
 	}
 

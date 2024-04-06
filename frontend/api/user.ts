@@ -22,7 +22,7 @@ export const handleUserInit = (data: unknown) => {
   if (user.data.lobbies.length > 0) {
     lobbyStore.getInfo()
   } else {
-    router.replace({ name: 'home' })
+    router.replace({ name: 'home', query: router.currentRoute.value.query })
   }
 }
 

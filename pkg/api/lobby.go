@@ -29,6 +29,11 @@ type m_LobbyChange struct {
 	GameType   string
 }
 
+type m_LobbyJoin struct {
+	Id   uuid.UUID
+	Name string
+}
+
 const pt_OLobbyUserChange OPacketType = "server_lobby_change_user"
 
 const pt_OLobbyChange OPacketType = "server_lobby_change"
@@ -37,6 +42,11 @@ const pt_OLobbyChange OPacketType = "server_lobby_change"
 const pt_ICreateLobby IPacketType = "client_lobby_create"
 
 func createLobby(i HandlerInput) error {
+	data, err := hp[m_LobbyJoin](i.Packet)
+	if err != nil {
+		return err
+	}
+
 	id, err := uuid.NewV7()
 	if err != nil {
 		return err
@@ -45,6 +55,13 @@ func createLobby(i HandlerInput) error {
 	err = db.CreateLobby(id, i.UserId)
 	if err != nil {
 		return err
+	}
+
+	if data.Name != "" {
+		err = db.SetUserName(i.UserId, data.Name)
+		if err != nil {
+			return err
+		}
 	}
 
 	sendLobbyDataSingle(i.C, id, i.UserId)
@@ -56,15 +73,34 @@ func createLobby(i HandlerInput) error {
 const pt_IJoinLobby IPacketType = "client_lobby_join"
 
 func joinLobby(i HandlerInput) error {
-	lobbyId, err := hp[uuid.UUID](i.Packet)
+	data, err := hp[m_LobbyJoin](i.Packet)
 	if err != nil {
 		return err
 	}
 
-	db.SaveLobbyUser(*lobbyId, i.UserId)
+	exists, err := db.LobbyExists(data.Id)
 
-	sendLobbyUserChange(i.C, *lobbyId)
-	sendLobbyDataSingle(i.C, *lobbyId, i.UserId)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("lobby does not exist")
+	}
+
+	if data.Name != "" {
+		err = db.SetUserName(i.UserId, data.Name)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = db.SaveLobbyUser(data.Id, i.UserId)
+	if err != nil {
+		return err
+	}
+
+	sendLobbyUserChange(i.C, data.Id)
+	sendLobbyDataSingle(i.C, data.Id, i.UserId)
 
 	return nil
 }

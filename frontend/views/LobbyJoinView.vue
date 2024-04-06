@@ -1,22 +1,13 @@
 <script setup lang="ts">
-import api from '@/api'
-import { onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-
-const router = useRouter()
-const goHome = () => {
-  router.push('/')
-}
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 
 const route = useRoute()
-
-onMounted(() => {
-  api.lobby.join(route.params.id.toString())
-})
+const lobbyId = computed(() => route.params.id.toString())
 </script>
 
 <template>
-  <span class="mb-2">Failed to join lobby</span>
-
-  <button class="button" @click="goHome">Go Home</button>
+  <main class="centerize">
+    <JoinMenu :id="lobbyId" />
+  </main>
 </template>
