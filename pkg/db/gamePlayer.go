@@ -25,7 +25,7 @@ func PlayerGiveType(gameId uuid.UUID, playerId uuid.UUID, playerType string) err
 }
 
 func PlayerRemType(gameId uuid.UUID, userId uuid.UUID, userType string) error {
-	return nil
+	return fmt.Errorf("not implemented")
 }
 
 func PlayerTypeGetAll(gameId uuid.UUID, playerType string) ([]uuid.UUID, error) {

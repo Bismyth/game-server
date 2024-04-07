@@ -102,7 +102,7 @@ func (c *Client) readPump() {
 			c.id = api.SetUserId(id)
 			// TODO: Check for duplicate connection
 			c.send <- api.UserInitPacket(c.id)
-			c.hub.clientInterface.clientIds[c.id] = c
+			c.hub.clientIds[c.id] = c
 			continue
 		}
 

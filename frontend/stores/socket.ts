@@ -5,7 +5,9 @@ import api from '@/api'
 import { useErrorStore } from './error'
 
 export const useSocketStore = defineStore('socket', () => {
-  const conn = new WebSocket(`ws://${document.location.host}/ws`)
+  const wsProtocol = location.protocol === 'http:' ? 'ws:' : 'wss:'
+
+  const conn = new WebSocket(`${wsProtocol}//${document.location.host}/ws`)
 
   const userReady = ref(false)
 

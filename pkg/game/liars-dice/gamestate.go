@@ -8,7 +8,7 @@ import (
 func cachePublicGameState(gameId uuid.UUID) error {
 	gs := PublicGameState{}
 
-	players, err := db.GetLobbyUserIds(gameId)
+	players, err := db.PlayerTypeGetAll(gameId, playerType)
 	if err != nil {
 		return err
 	}
