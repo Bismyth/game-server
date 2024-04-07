@@ -4,17 +4,13 @@ import FormWrap from '@/components/FormWrap.vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { ref } from 'vue'
 import { useLobbyStore } from '@/stores/lobby'
-
-const optionsSchema = z.object({
-  startingDice: z.number().int().min(1).max(99),
-})
+import { optionsSchema, type Options } from '@/game/liarsdice/options'
 
 const emit = defineEmits<{
-  submit: [T: FormResult]
+  submit: [T: Options]
 }>()
 
-type FormResult = z.infer<typeof optionsSchema>
-const submit = (data: FormResult) => {
+const submit = (data: Options) => {
   emit('submit', data)
 }
 

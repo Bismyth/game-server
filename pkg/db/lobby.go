@@ -10,13 +10,23 @@ import (
 const lobbyHashName = "lobby"
 const lobbyUsersHashName = "lobbyUsers"
 
-type LobbyUserList map[uuid.UUID]string
+type LobbyUser struct {
+	Name string `json:"name"`
+	Host bool   `json:"host"`
+}
+
+type LobbyUserList map[uuid.UUID]*LobbyUser
 
 func CreateLobby(lobbyId uuid.UUID, initialUser uuid.UUID) error {
 	conn := getConn()
 	ctx := context.Background()
 
 	err := conn.HSet(ctx, i(lobbyHashName, lobbyId), "gameType", "").Err()
+	if err != nil {
+		return err
+	}
+
+	err = conn.HSet(ctx, i(lobbyHashName, lobbyId), "host", initialUser.String()).Err()
 	if err != nil {
 		return err
 	}
@@ -40,6 +50,15 @@ func GetLobbyUsers(lobbyId uuid.UUID) (LobbyUserList, error) {
 		return list, err
 	}
 
+	hostIdString, err := conn.HGet(ctx, i(lobbyHashName, lobbyId), "host").Result()
+	if err != nil {
+		return list, err
+	}
+	hostId, err := uuid.Parse(hostIdString)
+	if err != nil {
+		return list, err
+	}
+
 	//validate keys are uuids
 	for k := range m {
 		id, err := uuid.Parse(k)
@@ -47,12 +66,18 @@ func GetLobbyUsers(lobbyId uuid.UUID) (LobbyUserList, error) {
 			return list, fmt.Errorf("invalid userid in list")
 		}
 
+		var user LobbyUser
+
 		name, err := GetUserName(id)
 		if err != nil {
 			return list, fmt.Errorf("failed to get name for user")
 		}
+		user.Name = name
+		if id == hostId {
+			user.Host = true
+		}
 
-		list[id] = name
+		list[id] = &user
 	}
 
 	return list, nil
@@ -91,9 +116,32 @@ func RemoveLobbyUser(lobbyId uuid.UUID, userId uuid.UUID) error {
 	conn := getConn()
 	ctx := context.Background()
 
-	err := conn.HDel(ctx, i(lobbyUsersHashName, lobbyId), userId.String()).Err()
+	host, err := IsUserLobbyHost(lobbyId, userId)
 	if err != nil {
 		return err
+	}
+
+	err = conn.HDel(ctx, i(lobbyUsersHashName, lobbyId), userId.String()).Err()
+	if err != nil {
+		return err
+	}
+
+	if host {
+		users, err := GetLobbyUserIds(lobbyId)
+		if err != nil {
+			return err
+		}
+		if len(users) > 0 {
+			err = conn.HSet(ctx, i(lobbyHashName, lobbyId), "host", users[0].String()).Err()
+			if err != nil {
+				return err
+			}
+		} else {
+			err = conn.Del(ctx, i(lobbyHashName, lobbyId)).Err()
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	err = RemoveUserLobby(userId, lobbyId)
@@ -114,6 +162,22 @@ func IsUserInLobby(lobbyId uuid.UUID, userId uuid.UUID) (bool, error) {
 	}
 
 	return r, nil
+}
+
+func IsUserLobbyHost(lobbyId uuid.UUID, userId uuid.UUID) (bool, error) {
+	conn := getConn()
+	ctx := context.Background()
+
+	idString, err := conn.HGet(ctx, i(lobbyHashName, lobbyId), "host").Result()
+	if err != nil {
+		return false, err
+	}
+	id, err := uuid.Parse(idString)
+	if err != nil {
+		return false, err
+	}
+
+	return id == userId, nil
 }
 
 func LobbyExists(lobbyId uuid.UUID) (bool, error) {

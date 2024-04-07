@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/Bismyth/game-server/pkg/db"
-	"github.com/Bismyth/game-server/pkg/interfaces"
 	"github.com/google/uuid"
 )
 
@@ -63,7 +62,7 @@ func checkValidBid(oldBid string, newBid string) bool {
 	return true
 }
 
-func handleBid(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID, bid string) error {
+func handleBid(gameId uuid.UUID, bid string) error {
 	oldBid, err := db.GetGameProperty[string](gameId, "bid")
 	if err != nil {
 		return err

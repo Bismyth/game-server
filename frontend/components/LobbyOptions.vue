@@ -8,6 +8,7 @@ import type { z } from 'zod'
 import api from '@/api'
 import { ref, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
+import IconButton from './IconButton.vue'
 
 const lobby = useLobbyStore()
 
@@ -40,9 +41,7 @@ watch(showOptions, (newValue) => {
 </script>
 
 <template>
-  <h1>Lobby Options</h1>
-  <button class="button" @click="openModal">Show</button>
-
+  <IconButton @click="openModal" icon="fa6-solid:pencil" label="Edit" />
   <ModalWrap :shown="showOptions" title="Lobby Options" @close="onClose">
     <template #body>
       <FormWrap :schema="lobbyDataSchema" @submit="submit" ref="formWrap">

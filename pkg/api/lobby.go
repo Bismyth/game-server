@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/Bismyth/game-server/pkg/db"
+	"github.com/Bismyth/game-server/pkg/game"
 	"github.com/google/uuid"
 )
 
@@ -123,7 +124,7 @@ func lobbyUsers(i HandlerInput) error {
 func makeLobbyUsersMessage(lobbyId uuid.UUID) ([]uuid.UUID, *Packet[db.LobbyUserList]) {
 	users, err := db.GetLobbyUsers(lobbyId)
 	if err != nil {
-		log.Printf("Failed to retrieve list of users in lobby")
+		return []uuid.UUID{}, nil
 	}
 	keys := make([]uuid.UUID, 0, len(users))
 
@@ -200,13 +201,12 @@ func sendLobbyData(c Client, lobbyId uuid.UUID) {
 }
 
 func makeChangesAllowed(lobbyId uuid.UUID, userId uuid.UUID) error {
-	//todo: check if user is lobby host to change settings
-	inLobby, err := db.IsUserInLobby(lobbyId, userId)
+	isHost, err := db.IsUserLobbyHost(lobbyId, userId)
 	if err != nil {
 		return err
 	}
-	if !inLobby {
-		return fmt.Errorf("not in lobby")
+	if !isHost {
+		return fmt.Errorf("not lobby host")
 	}
 
 	return nil
@@ -225,9 +225,23 @@ func lobbyChange(i HandlerInput) error {
 		return err
 	}
 
-	err = db.SetLobbyProperty(data.Id, "gameType", data.GameType)
+	oldGameType, err := db.GetLobbyProperty(data.Id, "gameType")
 	if err != nil {
 		return err
+	}
+	if data.GameType != oldGameType {
+		err = db.SetLobbyProperty(data.Id, "gameType", data.GameType)
+		if err != nil {
+			return err
+		}
+		options, err := game.GetDefaultOptions(data.GameType)
+		if err != nil {
+			return err
+		}
+		err = db.SetLobbyProperty(data.Id, "options", string(options))
+		if err != nil {
+			return err
+		}
 	}
 
 	sendLobbyData(i.C, data.Id)

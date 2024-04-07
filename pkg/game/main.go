@@ -15,6 +15,7 @@ type GameHandler interface {
 	HandleAction(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID, data json.RawMessage) error
 	HandleReady(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error
 	New(gameId uuid.UUID, options []byte) error
+	DefaultOptions() interface{}
 }
 
 var gameHandlers map[string]GameHandler = map[string]GameHandler{
@@ -112,4 +113,18 @@ func New(lobbyId uuid.UUID) error {
 	}
 
 	return nil
+}
+
+func GetDefaultOptions(gameType string) ([]byte, error) {
+	h, ok := gameHandlers[gameType]
+	if !ok {
+		return nil, fmt.Errorf("unrecognized game type")
+	}
+
+	b, err := json.Marshal(h.DefaultOptions())
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal default options")
+	}
+
+	return b, nil
 }

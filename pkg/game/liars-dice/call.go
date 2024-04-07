@@ -70,7 +70,7 @@ func loseDiceAtCursor(gameId uuid.UUID, playerCursor *db.Cursor) (int, error) {
 	return newAmount, nil
 }
 
-func handleCall(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error {
+func handleCall(c interfaces.GameCommunication, gameId uuid.UUID) error {
 	var err error
 
 	bidRight, err := evalBid(gameId)

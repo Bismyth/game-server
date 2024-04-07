@@ -84,7 +84,13 @@ export const handleLobbyChange = (data: unknown) => {
   lobbyChangeCB.run(parsedData)
 }
 
-const lobbyUserSchema = z.record(z.string().uuid(), z.string())
+const lobbyUserSchema = z.record(
+  z.string().uuid(),
+  z.object({
+    name: z.string(),
+    host: z.boolean(),
+  }),
+)
 
 export type LobbyUsers = z.infer<typeof lobbyUserSchema>
 const lobbyUserChangeCB = new CallBackFunc<LobbyUsers>()

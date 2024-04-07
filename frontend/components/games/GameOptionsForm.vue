@@ -2,9 +2,9 @@
 import api from '@/api'
 import { useLobbyStore } from '@/stores/lobby'
 import { defineAsyncComponent, ref, watch } from 'vue'
-import NoOptions from './NoOptions.vue'
 import ModalWrap from '../ModalWrap.vue'
 import { gameTypeLabels } from '@/game'
+import IconButton from '../IconButton.vue'
 
 const lobby = useLobbyStore()
 
@@ -48,8 +48,7 @@ const onOpen = () => {
 
 <template>
   <div v-if="lobby.gameType">
-    <button class="button" @click="onOpen">Options</button>
-
+    <IconButton @click="onOpen" icon="fa6-solid:screwdriver-wrench" label="Options" />
     <ModalWrap
       :shown="showGameOptions"
       :title="`${gameTypeLabels[lobby.gameType]} Options`"
@@ -66,5 +65,4 @@ const onOpen = () => {
       </template>
     </ModalWrap>
   </div>
-  <NoOptions v-else />
 </template>

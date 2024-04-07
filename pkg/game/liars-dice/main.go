@@ -19,6 +19,12 @@ func New() *Handler {
 	return &Handler{}
 }
 
+func (h *Handler) DefaultOptions() interface{} {
+	return &Options{
+		StartingDice: 5,
+	}
+}
+
 func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) error {
 	var options Options
 	err := json.Unmarshal(rawOptions, &options)
@@ -77,9 +83,9 @@ func (h *Handler) HandleAction(c interfaces.GameCommunication, gameId uuid.UUID,
 
 	switch response.Option {
 	case ga_bid:
-		err = handleBid(c, gameId, playerId, response.Data.Bid)
+		err = handleBid(gameId, response.Data.Bid)
 	case ga_call:
-		err = handleCall(c, gameId, playerId)
+		err = handleCall(c, gameId)
 	default:
 		err = fmt.Errorf("unrecognized player option")
 	}
