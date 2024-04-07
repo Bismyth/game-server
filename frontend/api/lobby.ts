@@ -1,6 +1,6 @@
 import { useErrorStore } from '@/stores/error'
 import { CallBackFunc, parseData, sendMessage, validateUUID } from './main'
-import { IPacketType, OPacketType } from './packetTypes'
+import { OPacketType } from './packetTypes'
 import { z } from 'zod'
 import { gameTypes } from '@/game'
 
