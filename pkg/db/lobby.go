@@ -18,15 +18,17 @@ type LobbyUser struct {
 type LobbyUserList map[uuid.UUID]*LobbyUser
 
 func CreateLobby(lobbyId uuid.UUID, initialUser uuid.UUID) error {
-	conn := getConn()
-	ctx := context.Background()
-
-	err := conn.HSet(ctx, i(lobbyHashName, lobbyId), "gameType", "").Err()
+	err := SetLobbyProperty(lobbyId, "gameType", "")
 	if err != nil {
 		return err
 	}
 
-	err = conn.HSet(ctx, i(lobbyHashName, lobbyId), "host", initialUser.String()).Err()
+	err = SetLobbyProperty(lobbyId, "host", initialUser)
+	if err != nil {
+		return err
+	}
+
+	err = SetLobbyProperty(lobbyId, "inGame", false)
 	if err != nil {
 		return err
 	}
@@ -37,6 +39,10 @@ func CreateLobby(lobbyId uuid.UUID, initialUser uuid.UUID) error {
 	}
 
 	return nil
+}
+
+func LobbyInGame(lobbyId uuid.UUID) (bool, error) {
+	return GetLobbyProperty[bool](lobbyId, "inGame")
 }
 
 func GetLobbyUsers(lobbyId uuid.UUID) (LobbyUserList, error) {
@@ -50,11 +56,7 @@ func GetLobbyUsers(lobbyId uuid.UUID) (LobbyUserList, error) {
 		return list, err
 	}
 
-	hostIdString, err := conn.HGet(ctx, i(lobbyHashName, lobbyId), "host").Result()
-	if err != nil {
-		return list, err
-	}
-	hostId, err := uuid.Parse(hostIdString)
+	hostId, err := GetLobbyProperty[uuid.UUID](lobbyId, "host")
 	if err != nil {
 		return list, err
 	}
@@ -132,7 +134,7 @@ func RemoveLobbyUser(lobbyId uuid.UUID, userId uuid.UUID) error {
 			return err
 		}
 		if len(users) > 0 {
-			err = conn.HSet(ctx, i(lobbyHashName, lobbyId), "host", users[0].String()).Err()
+			err = SetLobbyProperty(lobbyId, "host", users[0])
 			if err != nil {
 				return err
 			}
@@ -165,14 +167,7 @@ func IsUserInLobby(lobbyId uuid.UUID, userId uuid.UUID) (bool, error) {
 }
 
 func IsUserLobbyHost(lobbyId uuid.UUID, userId uuid.UUID) (bool, error) {
-	conn := getConn()
-	ctx := context.Background()
-
-	idString, err := conn.HGet(ctx, i(lobbyHashName, lobbyId), "host").Result()
-	if err != nil {
-		return false, err
-	}
-	id, err := uuid.Parse(idString)
+	id, err := GetHashTableProperty[uuid.UUID](i(lobbyHashName, lobbyId), "host")
 	if err != nil {
 		return false, err
 	}
@@ -196,22 +191,10 @@ func GetLobbyProperties(lobbyId uuid.UUID, fields []string) (map[string]interfac
 	return GetHashTableProperties(i(lobbyHashName, lobbyId), fields)
 }
 
-func GetLobbyProperty(lobbyId uuid.UUID, field string) (string, error) {
-	return GetHashTableProperty(i(lobbyHashName, lobbyId), field)
+func GetLobbyProperty[T any](lobbyId uuid.UUID, field string) (T, error) {
+	return GetHashTableProperty[T](i(lobbyHashName, lobbyId), field)
 }
 
-type MakeString interface {
-	String() string
-}
-
-func SetLobbyProperty(lobbyId uuid.UUID, field string, value string) error {
-	conn := getConn()
-	ctx := context.Background()
-
-	err := conn.HSet(ctx, i(lobbyHashName, lobbyId), field, value).Err()
-	if err != nil {
-		return err
-	}
-
-	return nil
+func SetLobbyProperty[T any](lobbyId uuid.UUID, field string, value T) error {
+	return SetHashTableProperty(i(lobbyHashName, lobbyId), field, value)
 }

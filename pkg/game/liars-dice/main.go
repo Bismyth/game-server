@@ -3,6 +3,7 @@ package liarsdice
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/Bismyth/game-server/pkg/db"
 	"github.com/Bismyth/game-server/pkg/interfaces"
@@ -12,6 +13,8 @@ import (
 const Code = "liarsdice"
 
 const playerType = "player"
+
+const cacheExpireTime time.Duration = 2 * time.Hour
 
 type Handler struct{}
 
@@ -33,6 +36,10 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) error {
 	}
 
 	if err := db.SetGameProperty(gameId, "bid", ""); err != nil {
+		return err
+	}
+
+	if err := db.SetGameProperty(gameId, "gameOver", false); err != nil {
 		return err
 	}
 
@@ -125,13 +132,7 @@ func (h *Handler) HandleReady(c interfaces.GameCommunication, gameId uuid.UUID, 
 		return err
 	}
 
-	cursor := db.GetCursor(gameId, playerType)
-	activePlayer, err := cursor.Current()
-	if err != nil {
-		return err
-	}
-
-	if activePlayer == playerId {
+	if publicGs.PlayerTurn == playerId {
 		c.ActionPrompt(playerId, allActions)
 	}
 
@@ -141,4 +142,65 @@ func (h *Handler) HandleReady(c interfaces.GameCommunication, gameId uuid.UUID, 
 	})
 
 	return nil
+}
+
+func (h *Handler) HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error {
+	cursor := db.GetCursor(gameId, playerType)
+	current, err := cursor.Current()
+	if err != nil {
+		return err
+	}
+	if current == playerId {
+		err := cursor.Remove()
+		if err != nil {
+			return err
+		}
+	} else {
+		err := cursor.SeekIndex(playerId)
+		if err != nil {
+			return err
+		}
+		err = cursor.Remove()
+		if err != nil {
+			return err
+		}
+		err = cursor.SeekIndex(current)
+		if err != nil {
+			return err
+		}
+	}
+
+	end, err := checkEnd(gameId)
+	if err != nil {
+		return err
+	}
+
+	if end {
+		endGame(c, gameId)
+	} else {
+		err = cachePublicGameState(gameId)
+		if err != nil {
+			return err
+		}
+
+		pGs, err := getPublicGameState(gameId)
+		if err != nil {
+			return err
+		}
+
+		c.SendGlobal(GameState{
+			Public: pGs,
+		})
+	}
+
+	return nil
+}
+
+func checkEnd(gameId uuid.UUID) (bool, error) {
+	numPlayers, err := db.PlayerTypeCount(gameId, playerType)
+	if err != nil {
+		return false, err
+	}
+
+	return numPlayers <= 1, nil
 }

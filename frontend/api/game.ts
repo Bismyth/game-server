@@ -37,26 +37,22 @@ const newGame = (lobbyId: string) => {
   })
 }
 
-const action = (option: string, data: any) => {
-  const lobby = useLobbyStore()
-
+const action = (lobbyId: string, option: string, data: any) => {
   sendMessage({
     type: OPacketType.GameAction,
     data: {
-      id: lobby.id,
+      id: lobbyId,
       option,
       data,
     },
   })
 }
 
-const ready = () => {
-  const lobby = useLobbyStore()
-
+const ready = (lobbyId: string) => {
   sendMessage({
     type: OPacketType.GameReady,
     data: {
-      id: lobby.id,
+      id: lobbyId,
     },
   })
 }

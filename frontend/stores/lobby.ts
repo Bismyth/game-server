@@ -21,24 +21,25 @@ export const useLobbyStore = defineStore('lobby', () => {
   api.lobby.lobbyUserChangeCB.fn = handleLobbyUserChange
 
   const handleLobbyChange = (d: LobbyData) => {
-    ready.value = true
+    if (api.isNilUUID(d.id)) {
+      router.replace({ name: 'home' })
+      return
+    }
 
-    if (!api.isNilUUID(d.id)) {
-      if (api.isNilUUID(id.value)) {
-        api.lobby.users(d.id)
-      }
-      id.value = d.id
+    if (api.isNilUUID(id.value)) {
+      api.lobby.users(d.id)
+    }
+    id.value = d.id
 
-      if (d.inGame) {
+    if (d.inGame !== null) {
+      inGame.value = d.inGame
+    }
+    if (router.currentRoute.value.name !== 'game') {
+      if (inGame.value) {
         router.replace({ name: 'game' })
       } else {
         router.replace({ name: 'lobby' })
       }
-    } else {
-      router.replace({ name: 'home' })
-    }
-    if (!d.inGame && inGame.value) {
-      router.replace({ name: 'lobby' })
     }
 
     if (d.gameType) {
@@ -52,9 +53,7 @@ export const useLobbyStore = defineStore('lobby', () => {
       options.value = JSON.parse(d.gameOptions)
     }
 
-    if (d.inGame !== inGame.value) {
-      inGame.value = d.inGame ?? false
-    }
+    ready.value = true
   }
 
   const getInfo = () => {

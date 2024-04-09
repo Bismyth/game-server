@@ -18,6 +18,8 @@ type PublicGameState struct {
 	HighestBid  string            `json:"highestBid"`
 	PlayerTurn  uuid.UUID         `json:"playerTurn"`
 	DiceAmounts map[uuid.UUID]int `json:"diceAmounts"`
+	TurnOrder   []uuid.UUID       `json:"turnOrder"`
+	GameOver    bool              `json:"gameOver"`
 }
 
 type PrivateGameState struct {

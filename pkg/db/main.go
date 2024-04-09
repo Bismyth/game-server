@@ -2,8 +2,11 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"reflect"
+	"strconv"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -80,16 +83,40 @@ func GetHashTableProperties(key string, fields []string) (map[string]interface{}
 	return output, nil
 }
 
-func GetHashTableProperty(key, field string) (string, error) {
+func GetHashTableProperty[T any](key, field string) (T, error) {
 	conn := getConn()
 	ctx := context.Background()
 
-	r, err := conn.HGet(ctx, key, field).Result()
+	result := new(T)
+
+	r, err := conn.HGet(ctx, key, field).Bytes()
 	if err != nil {
-		return "", err
+		return *result, err
 	}
 
-	return r, nil
+	err = Decode(r, result)
+	if err != nil {
+		return *result, err
+	}
+
+	return *result, nil
+}
+
+func SetHashTableProperty[T any](key, field string, value T) error {
+	conn := getConn()
+	ctx := context.Background()
+
+	stringValue, err := Encode(value)
+	if err != nil {
+		return err
+	}
+
+	err = conn.HSet(ctx, key, field, stringValue).Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func ParseUUIDList(idStrings []string) ([]uuid.UUID, error) {
@@ -103,4 +130,64 @@ func ParseUUIDList(idStrings []string) ([]uuid.UUID, error) {
 		ids[i] = id
 	}
 	return ids, nil
+}
+
+func Encode(t interface{}) (string, error) {
+	switch v := t.(type) {
+	case string:
+		return v, nil
+	case int:
+		return strconv.Itoa(v), nil
+	case int64:
+		return strconv.FormatInt(v, 10), nil
+	case uuid.UUID:
+		return v.String(), nil
+	case bool:
+		return strconv.FormatBool(v), nil
+	default:
+		raw, err := json.Marshal(t)
+		return string(raw), err
+	}
+}
+
+func Decode(raw []byte, output interface{}) error {
+	rv := reflect.ValueOf(output)
+	if rv.Kind() != reflect.Pointer || rv.IsNil() {
+		return fmt.Errorf("not a pointer")
+	}
+
+	switch t := output.(type) {
+	case *string:
+		s := string(raw)
+		*t = s
+	case *int:
+		s := string(raw)
+		i, err := strconv.Atoi(s)
+		if err != nil {
+			return err
+		}
+		*t = i
+	case *int64:
+		i, err := strconv.ParseInt(string(raw), 10, 0)
+		if err != nil {
+			return err
+		}
+		*t = i
+	case *uuid.UUID:
+		id, err := uuid.Parse(string(raw))
+		if err != nil {
+			return err
+		}
+		*t = id
+	case *bool:
+		b, err := strconv.ParseBool(string(raw))
+		if err != nil {
+			return err
+		}
+		*t = b
+	default:
+		return json.Unmarshal(raw, output)
+	}
+
+	return nil
 }

@@ -55,11 +55,11 @@ const shareLink = () => {
         </div>
       </div>
       <div class="body-wrapper">
-        <div class="box body is-1 mb-0">
+        <div class="box is-1 mb-0">
           <h1 class="title is-4">Players</h1>
           <LobbyUsers :users="lobby.users" />
         </div>
-        <div class="box body is-5">
+        <div class="box is-5">
           <div class="is-flex mb-4">
             <h1 class="title is-4 mb-0">Lobby Info</h1>
             <div class="buttons ml-auto" v-if="isHost">
@@ -67,17 +67,20 @@ const shareLink = () => {
             </div>
           </div>
           <div class="is-flex mb-5 is-flex-direction-column">
-            <div class="is-flex mb-4">
+            <div class="is-flex mb-2">
               <div class="is-size-5">
                 <span class="has-text-weight-semibold">Game Type: </span>
                 {{ lobby.gameType === '' ? 'Not Selected' : gameTypeLabels[lobby.gameType] }}
               </div>
-              <div class="buttons ml-auto" v-if="isHost">
-                <GameOptionsForm />
-              </div>
             </div>
             <div v-if="lobby.gameType !== ''">
-              <h1 class="title is-5">Game Options</h1>
+              <hr />
+              <div class="is-flex mb-4">
+                <h1 class="title is-4 mb-0">Game Options</h1>
+                <div class="buttons ml-auto" v-if="isHost">
+                  <GameOptionsForm />
+                </div>
+              </div>
               <GameOptionsInfo />
             </div>
           </div>
@@ -105,22 +108,6 @@ const shareLink = () => {
 </template>
 
 <style>
-.box.body.is-5 {
-  flex-grow: 5;
-  min-width: 400px;
-}
-
-.box.body.is-1 {
-  flex-grow: 1;
-  min-width: 300px;
-}
-
-.body-wrapper {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
 .info-header {
   display: flex;
 }

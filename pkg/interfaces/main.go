@@ -9,4 +9,5 @@ type GameCommunication interface {
 	SendGlobal(data any)
 	SendPlayer(playerId uuid.UUID, data any)
 	ActionPrompt(playerId uuid.UUID, data any)
+	EndGame()
 }

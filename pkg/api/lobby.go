@@ -225,7 +225,7 @@ func lobbyChange(i HandlerInput) error {
 		return err
 	}
 
-	oldGameType, err := db.GetLobbyProperty(data.Id, "gameType")
+	oldGameType, err := db.GetLobbyProperty[string](data.Id, "gameType")
 	if err != nil {
 		return err
 	}
@@ -238,7 +238,7 @@ func lobbyChange(i HandlerInput) error {
 		if err != nil {
 			return err
 		}
-		err = db.SetLobbyProperty(data.Id, "options", string(options))
+		err = db.SetLobbyProperty(data.Id, "options", options)
 		if err != nil {
 			return err
 		}
@@ -283,6 +283,21 @@ func leaveLobby(i HandlerInput) error {
 	lobbyId, err := hp[uuid.UUID](i.Packet)
 	if err != nil {
 		return err
+	}
+
+	ig, err := db.LobbyInGame(*lobbyId)
+	if err != nil {
+		return err
+	}
+	if ig {
+		g := &gc{
+			GameId: *lobbyId,
+			C:      i.C,
+		}
+		err = game.HandleLeave(g, *lobbyId, i.UserId)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = db.RemoveLobbyUser(*lobbyId, i.UserId)

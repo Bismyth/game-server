@@ -9,12 +9,9 @@ import (
 )
 
 const userHashName = "user"
-const userLobbiesHashName = "userLobbies"
 
 func MakeUser(id uuid.UUID, name string) error {
-	conn := getConn()
-
-	return conn.HSet(context.Background(), i(userHashName, id), "name", name).Err()
+	return SetUserName(id, name)
 }
 
 func UserExists(id uuid.UUID) bool {
@@ -26,19 +23,11 @@ func UserExists(id uuid.UUID) bool {
 }
 
 func GetUserName(id uuid.UUID) (string, error) {
-	conn := getConn()
-	name, err := conn.HGet(context.Background(), i(userHashName, id), "name").Result()
-	if err != nil {
-		return "", err
-	}
-
-	return name, nil
+	return GetHashTableProperty[string](i(userHashName, id), "name")
 }
 
 func SetUserName(id uuid.UUID, name string) error {
-	conn := getConn()
-
-	return conn.HSet(context.Background(), i(userHashName, id), "name", name).Err()
+	return SetHashTableProperty(i(userHashName, id), "name", name)
 }
 
 func GetAllUserIds() ([]uuid.UUID, error) {
@@ -66,7 +55,7 @@ func SaveUserLobby(userId uuid.UUID, lobbyId uuid.UUID) error {
 	conn := getConn()
 	ctx := context.Background()
 
-	err := conn.SAdd(ctx, i(userLobbiesHashName, userId), lobbyId.String()).Err()
+	err := conn.SAdd(ctx, it(userHashName, userId, "lobbies"), lobbyId.String()).Err()
 	if err != nil {
 		return err
 	}
@@ -78,7 +67,7 @@ func RemoveUserLobby(userId uuid.UUID, lobbyId uuid.UUID) error {
 	conn := getConn()
 	ctx := context.Background()
 
-	err := conn.SRem(ctx, i(userLobbiesHashName, userId), lobbyId.String()).Err()
+	err := conn.SRem(ctx, it(userHashName, userId, "lobbies"), lobbyId.String()).Err()
 	if err != nil {
 		return err
 	}
@@ -90,19 +79,10 @@ func GetUserLobbies(userId uuid.UUID) ([]uuid.UUID, error) {
 	conn := getConn()
 	ctx := context.Background()
 
-	idStrings, err := conn.SMembers(ctx, i(userLobbiesHashName, userId)).Result()
+	idStrings, err := conn.SMembers(ctx, it(userHashName, userId, "lobbies")).Result()
 	if err != nil {
 		return nil, err
 	}
-	ids := make([]uuid.UUID, len(idStrings))
 
-	for i, idString := range idStrings {
-		id, err := uuid.Parse(idString)
-		if err != nil {
-			return ids, err
-		}
-		ids[i] = id
-	}
-
-	return ids, nil
+	return ParseUUIDList(idStrings)
 }

@@ -7,5 +7,5 @@ defineProps<{
 </script>
 
 <template>
-  <FullLogo class="logo" :style="{ width: `${width ?? 400}px` }" />
+  <FullLogo class="f-primary" :style="{ width: `${width ?? 400}px` }" />
 </template>

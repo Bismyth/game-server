@@ -13,11 +13,6 @@ const close = (e: Event) => {
   e.preventDefault()
   emit('close')
 }
-
-const submit = (e: Event) => {
-  e.preventDefault()
-  emit('submit')
-}
 </script>
 
 <template>

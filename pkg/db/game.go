@@ -2,41 +2,63 @@ package db
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 const gameHashName = "game"
 
-func GetGameType(id uuid.UUID) (string, error) {
+func SetGameCache(gameId uuid.UUID, data any) error {
 	conn := getConn()
 	ctx := context.Background()
 
-	gameType, err := conn.HGet(ctx, i(gameHashName, id), "type").Result()
+	v, err := Encode(data)
 	if err != nil {
-		return "", fmt.Errorf("could not get game type")
+		return err
 	}
 
-	return gameType, nil
-}
-
-func SetGameProperty(gameId uuid.UUID, field string, data any) error {
-	conn := getConn()
-	ctx := context.Background()
-
-	rawData, err := json.Marshal(data)
+	err = conn.Set(ctx, it(gameHashName, gameId, "cache"), v, 0).Err()
 	if err != nil {
-		return fmt.Errorf("failed to marshal %s data", field)
-	}
-
-	err = conn.HSet(ctx, i(gameHashName, gameId), field, string(rawData)).Err()
-	if err != nil {
-		return fmt.Errorf("failed to set property: %s", field)
+		return err
 	}
 
 	return nil
+}
+
+func GetGameCache[T any](gameId uuid.UUID) (T, error) {
+	conn := getConn()
+	ctx := context.Background()
+
+	output := new(T)
+
+	r, err := conn.Get(ctx, it(gameHashName, gameId, "cache")).Bytes()
+	if err != nil {
+		return *output, err
+	}
+
+	err = Decode(r, output)
+	if err != nil {
+		return *output, err
+	}
+
+	return *output, nil
+}
+
+func ExpireCache(gameId uuid.UUID, duration time.Duration) error {
+	conn := getConn()
+	ctx := context.Background()
+
+	err := conn.Expire(ctx, it(gameHashName, gameId, "cache"), duration).Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func SetGameProperty(gameId uuid.UUID, field string, data any) error {
+	return SetHashTableProperty(i(gameHashName, gameId), field, data)
 }
 
 func SetPlayerProperty(gameId uuid.UUID, playerId uuid.UUID, field string, data any) error {
@@ -44,22 +66,7 @@ func SetPlayerProperty(gameId uuid.UUID, playerId uuid.UUID, field string, data 
 }
 
 func GetGameProperty[T any](gameId uuid.UUID, field string) (T, error) {
-	conn := getConn()
-	ctx := context.Background()
-
-	var data T
-
-	rawData, err := conn.HGet(ctx, i(gameHashName, gameId), field).Bytes()
-	if err != nil {
-		return data, fmt.Errorf("failed to get property: %s", field)
-	}
-
-	err = json.Unmarshal(rawData, &data)
-	if err != nil {
-		return data, fmt.Errorf("failed to unmarshal data for: %s", field)
-	}
-
-	return data, nil
+	return GetHashTableProperty[T](i(gameHashName, gameId), field)
 }
 
 func GetPlayerProperty[T any](gameId uuid.UUID, playerId uuid.UUID, field string) (T, error) {
@@ -83,4 +90,16 @@ func GetMultiPlayerProperty[T any](gameId uuid.UUID, field string, playerType st
 	}
 
 	return output, nil
+}
+
+func DeleteGame(gameId uuid.UUID) error {
+	conn := getConn()
+	ctx := context.Background()
+
+	err := conn.Del(ctx, i(gameHashName, gameId)).Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

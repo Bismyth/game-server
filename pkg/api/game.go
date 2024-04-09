@@ -54,6 +54,14 @@ func (g *gc) ActionPrompt(playerId uuid.UUID, data any) {
 	Send(g.C, playerId, &packet)
 }
 
+func (g *gc) EndGame() {
+	err := db.SetLobbyProperty(g.GameId, "inGame", false)
+	if err != nil {
+		log.Printf("failed to change lobby to not in game")
+	}
+	sendLobbyData(g.C, g.GameId)
+}
+
 func gameNew(i HandlerInput) error {
 	lobbyId, err := hp[uuid.UUID](i.Packet)
 	if err != nil {
@@ -66,10 +74,6 @@ func gameNew(i HandlerInput) error {
 		return nil
 	}
 
-	err = db.SetLobbyProperty(*lobbyId, "inGame", "true")
-	if err != nil {
-		return err
-	}
 	sendLobbyData(i.C, *lobbyId)
 
 	return nil

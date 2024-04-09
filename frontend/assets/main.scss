@@ -5,12 +5,42 @@ $purple: #6c0f6a;
   $primary: $purple
 );
 
+@import 'bulma/sass/utilities';
+
 .icon-text {
   flex-wrap: nowrap;
 }
 
-.logo {
-  fill: $purple;
+.f-primary {
+  fill: $primary;
+}
+
+.f-success {
+  fill: $success;
+}
+
+.f-danger {
+  fill: $danger;
+}
+
+.f-text {
+  fill: $text;
+}
+
+.body-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.body-wrapper > .is-5 {
+  flex-grow: 5;
+  min-width: 400px;
+}
+
+.body-wrapper > .is-1 {
+  flex-grow: 1;
+  min-width: 300px;
 }
 
 .no-mouse {
@@ -40,7 +70,7 @@ $purple: #6c0f6a;
 }
 
 .b-primary {
-  border: $purple 1px solid;
+  border: $primary 1px solid;
 }
 
 .name {
@@ -54,4 +84,8 @@ $purple: #6c0f6a;
   max-width: 800px;
   margin: auto;
   width: 100%;
+}
+
+.field .field {
+  margin-bottom: 0;
 }

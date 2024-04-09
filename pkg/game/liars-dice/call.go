@@ -89,8 +89,17 @@ func handleCall(c interfaces.GameCommunication, gameId uuid.UUID) error {
 	}
 
 	if a <= 0 {
-		playerCursor.Remove()
-		// TODO: if only one player standing trigger game win
+		err := playerCursor.Remove()
+		if err != nil {
+			return err
+		}
+		end, err := checkEnd(gameId)
+		if err != nil {
+			return err
+		}
+		if end {
+			endGame(c, gameId)
+		}
 	}
 
 	if !bidRight && a > 0 {

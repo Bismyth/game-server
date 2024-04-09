@@ -29,7 +29,6 @@ func PlayerRemType(gameId uuid.UUID, userId uuid.UUID, userType string) error {
 }
 
 func PlayerTypeGetAll(gameId uuid.UUID, playerType string) ([]uuid.UUID, error) {
-
 	conn := getConn()
 	ctx := context.Background()
 
@@ -39,6 +38,40 @@ func PlayerTypeGetAll(gameId uuid.UUID, playerType string) ([]uuid.UUID, error) 
 	}
 
 	return ParseUUIDList(idStrings)
+}
+
+func PlayerTypeCount(gameId uuid.UUID, playerType string) (int64, error) {
+	conn := getConn()
+	ctx := context.Background()
+
+	count, err := conn.LLen(ctx, it(gameHashName, gameId, playerType)).Result()
+	if err != nil {
+		return -1, err
+	}
+
+	return count, nil
+}
+
+func PlayerIsType(gameId uuid.UUID, playerId uuid.UUID, playerType string) bool {
+	conn := getConn()
+	ctx := context.Background()
+
+	_, err := conn.LPos(ctx, it(gameHashName, gameId, playerType), playerId.String(), redis.LPosArgs{}).Result()
+
+	return err == nil
+}
+
+func DeletePlayerTypeList(gameId uuid.UUID, playerType string) error {
+	conn := getConn()
+	ctx := context.Background()
+
+	err := conn.Del(ctx, it(gameHashName, gameId, playerType)).Err()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type Cursor struct {
@@ -158,6 +191,32 @@ func (c *Cursor) Remove() error {
 	return nil
 }
 
+func (c *Cursor) SeekIndex(id uuid.UUID) error {
+	conn := getConn()
+	ctx := context.Background()
+
+	index, err := conn.LPos(ctx, c.key, id.String(), redis.LPosArgs{}).Result()
+	if err != nil {
+		return err
+	}
+
+	c.SetIndex(index)
+
+	return nil
+}
+
 func (c *Cursor) Shift(n int64) {
 	c.SetIndex(c.wrapIndex(c.GetIndex() + n))
+}
+
+func (c *Cursor) Delete() error {
+	conn := getConn()
+	ctx := context.Background()
+
+	err := conn.Del(ctx, c.key).Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
