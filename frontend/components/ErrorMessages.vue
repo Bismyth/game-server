@@ -1,22 +1,23 @@
 <script setup lang="ts">
-import { useErrorStore } from '@/stores/error'
+import type { ErrorMessage } from '@/stores/error'
 
-const errorState = useErrorStore()
+defineProps<{ messages: Record<number, ErrorMessage> }>()
 
-const messages = errorState.messageGetter
+const emit = defineEmits<{
+  delete: [number]
+}>()
 
 const deleteMessage = (e: MouseEvent) => {
   const target = e.target as HTMLButtonElement
-  console.log(target.getAttribute('data-id'))
   let idTarget = parseInt(target.getAttribute('data-id') ?? '')
   if (Number.isInteger(idTarget)) {
-    errorState.deleteMessage(idTarget)
+    emit('delete', idTarget)
   }
 }
 </script>
 
 <template>
-  <div class="container mb-3">
+  <div class="container">
     <div
       v-for="(message, id) in messages"
       :key="id"

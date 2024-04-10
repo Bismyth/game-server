@@ -8,12 +8,10 @@ import (
 	"github.com/google/uuid"
 )
 
-var userHashName = "user"
+const userHashName = "user"
 
 func MakeUser(id uuid.UUID, name string) error {
-	conn := getConn()
-
-	return conn.HSet(context.Background(), i(userHashName, id), "name", name).Err()
+	return SetUserName(id, name)
 }
 
 func UserExists(id uuid.UUID) bool {
@@ -25,19 +23,11 @@ func UserExists(id uuid.UUID) bool {
 }
 
 func GetUserName(id uuid.UUID) (string, error) {
-	conn := getConn()
-	name, err := conn.HGet(context.Background(), i(userHashName, id), "name").Result()
-	if err != nil {
-		return "", err
-	}
-
-	return name, nil
+	return GetHashTableProperty[string](i(userHashName, id), "name")
 }
 
 func SetUserName(id uuid.UUID, name string) error {
-	conn := getConn()
-
-	return conn.HSet(context.Background(), i(userHashName, id), "name", name).Err()
+	return SetHashTableProperty(i(userHashName, id), "name", name)
 }
 
 func GetAllUserIds() ([]uuid.UUID, error) {
@@ -61,16 +51,11 @@ func GetAllUserIds() ([]uuid.UUID, error) {
 	return ids, errors.Join(idErrors...)
 }
 
-func SetUserLobby(id uuid.UUID, lobbyId uuid.UUID) error {
+func SaveUserLobby(userId uuid.UUID, lobbyId uuid.UUID) error {
 	conn := getConn()
 	ctx := context.Background()
 
-	err := conn.HDel(ctx, i(userHashName, id), "game").Err()
-	if err != nil {
-		return err
-	}
-
-	err = conn.HSet(ctx, i(userHashName, id), "lobby", lobbyId.String()).Err()
+	err := conn.SAdd(ctx, it(userHashName, userId, "lobbies"), lobbyId.String()).Err()
 	if err != nil {
 		return err
 	}
@@ -78,16 +63,11 @@ func SetUserLobby(id uuid.UUID, lobbyId uuid.UUID) error {
 	return nil
 }
 
-func SetUserGame(id uuid.UUID, gameId uuid.UUID) error {
+func RemoveUserLobby(userId uuid.UUID, lobbyId uuid.UUID) error {
 	conn := getConn()
 	ctx := context.Background()
 
-	err := conn.HDel(ctx, i(userHashName, id), "lobby").Err()
-	if err != nil {
-		return err
-	}
-
-	err = conn.HSet(ctx, i(userHashName, id), "game", gameId.String()).Err()
+	err := conn.SRem(ctx, it(userHashName, userId, "lobbies"), lobbyId.String()).Err()
 	if err != nil {
 		return err
 	}
@@ -95,19 +75,14 @@ func SetUserGame(id uuid.UUID, gameId uuid.UUID) error {
 	return nil
 }
 
-func IsUserInGame(userId uuid.UUID, gameId uuid.UUID) bool {
+func GetUserLobbies(userId uuid.UUID) ([]uuid.UUID, error) {
 	conn := getConn()
 	ctx := context.Background()
 
-	idString, err := conn.HGet(ctx, i(userHashName, userId), "game").Result()
+	idStrings, err := conn.SMembers(ctx, it(userHashName, userId, "lobbies")).Result()
 	if err != nil {
-		return false
+		return nil, err
 	}
 
-	id, err := uuid.Parse(idString)
-	if err != nil {
-		return false
-	}
-
-	return id == gameId
+	return ParseUUIDList(idStrings)
 }

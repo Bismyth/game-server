@@ -1,18 +1,19 @@
 import { useErrorStore } from '@/stores/error'
-import { parseData, sendMessage, validateUUID } from './main'
+import { CallBackFunc, parseData, sendMessage, validateUUID } from './main'
 import { OPacketType } from './packetTypes'
 import { z } from 'zod'
-import { useRouter } from 'vue-router'
-import router from '@/router'
+import { gameTypes } from '@/game'
 
-const create = () => {
+const create = (name?: string) => {
   sendMessage({
     type: OPacketType.CreateLobby,
-    data: null,
+    data: {
+      name,
+    },
   })
 }
 
-const join = (id: string) => {
+const join = (id: string, name?: string) => {
   const es = useErrorStore()
   if (!validateUUID(id)) {
     es.add({
@@ -24,7 +25,10 @@ const join = (id: string) => {
 
   sendMessage({
     type: OPacketType.JoinLobby,
-    data: id,
+    data: {
+      id,
+      name,
+    },
   })
 }
 
@@ -62,32 +66,79 @@ const users = (id: string) => {
   })
 }
 
-const lobbyUserSchema = z.array(z.string())
+const lobbySchema = z.object({
+  id: z.string().uuid(),
+  maxPlayers: z.number().int().nullable(),
+  minPlayers: z.number().int().nullable(),
+  name: z.string().nullable(),
+  gameType: z.union([z.enum(gameTypes), z.literal('')]).nullable(),
+  inGame: z.boolean().nullable(),
+  gameOptions: z.string().nullable(),
+})
+
+export type LobbyData = z.infer<typeof lobbySchema>
+const lobbyChangeCB = new CallBackFunc<LobbyData>()
 
 export const handleLobbyChange = (data: unknown) => {
+  const parsedData = parseData(data, lobbySchema)
+  lobbyChangeCB.run(parsedData)
+}
+
+const lobbyUserSchema = z.record(
+  z.string().uuid(),
+  z.object({
+    name: z.string(),
+    host: z.boolean(),
+  }),
+)
+
+export type LobbyUsers = z.infer<typeof lobbyUserSchema>
+const lobbyUserChangeCB = new CallBackFunc<LobbyUsers>()
+
+export const handleLobbyUserChange = (data: unknown) => {
   const parsedData = parseData(data, lobbyUserSchema)
-  onLobbyChange(parsedData)
+  lobbyUserChangeCB.run(parsedData)
 }
 
-const lobbyIdSchema = z.string().uuid()
-
-export const handleLobbyJoin = (data: unknown) => {
-  const parsedData = parseData(data, lobbyIdSchema)
-  router.push({ name: 'lobby', params: { id: parsedData } })
+const info = () => {
+  sendMessage({
+    type: OPacketType.LobbyInfo,
+    data: undefined,
+  })
 }
 
-const unsetLobbyChange = (users: string[]) => {
-  console.error('no method defined')
+export const lobbyDataSchema = z.object({
+  id: z.string().uuid(),
+  gameType: z.union([z.literal(''), z.enum(gameTypes)]),
+})
+
+type LobbyDataMessage = z.infer<typeof lobbyDataSchema>
+
+const change = (data: LobbyDataMessage) => {
+  sendMessage({
+    type: OPacketType.LobbyChange,
+    data,
+  })
 }
 
-let onLobbyChange = unsetLobbyChange
-
-const setOnLobbyChange = (func: typeof onLobbyChange) => {
-  onLobbyChange = func
+const options = (id: string, data: Record<string, any>) => {
+  sendMessage({
+    type: OPacketType.LobbyOptions,
+    data: {
+      id,
+      data,
+    },
+  })
 }
 
-const clearOnLobbyChange = () => {
-  onLobbyChange = unsetLobbyChange
+export default {
+  create,
+  join,
+  leave,
+  users,
+  info,
+  change,
+  options,
+  lobbyUserChangeCB,
+  lobbyChangeCB,
 }
-
-export default { create, join, leave, users, setOnLobbyChange, clearOnLobbyChange }

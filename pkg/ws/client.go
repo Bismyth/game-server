@@ -91,18 +91,18 @@ func (c *Client) readPump() {
 		}
 
 		if c.id == uuid.Nil {
-			requestedId, err := uuid.Parse(string(message))
-			if err != nil && string(message) != "" {
+			id, err := api.VerifyToken(string(message))
+			if err != nil {
 				errorPacket := api.CreateErrorPacket(fmt.Errorf("invalid initilization packet received"))
 				c.conn.WriteMessage(websocket.TextMessage, api.MarshalPacket(&errorPacket))
 				c.hub.unregister <- c
 				break
 			}
 
-			c.id = api.SetUserId(requestedId)
+			c.id = api.SetUserId(id)
 			// TODO: Check for duplicate connection
 			c.send <- api.UserInitPacket(c.id)
-			c.hub.clientInterface.clientIds[c.id] = c
+			c.hub.clientIds[c.id] = c
 			continue
 		}
 

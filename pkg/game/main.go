@@ -14,7 +14,9 @@ import (
 type GameHandler interface {
 	HandleAction(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID, data json.RawMessage) error
 	HandleReady(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error
-	New(gameId uuid.UUID, options json.RawMessage) error
+	New(gameId uuid.UUID, options []byte) error
+	DefaultOptions() interface{}
+	HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error
 }
 
 var gameHandlers map[string]GameHandler = map[string]GameHandler{
@@ -22,18 +24,22 @@ var gameHandlers map[string]GameHandler = map[string]GameHandler{
 }
 
 type SharedState struct {
-	Id   uuid.UUID
-	Type string
+	Id uuid.UUID
 }
 
 func getGameType(data json.RawMessage) (GameHandler, uuid.UUID, error) {
 	var state SharedState
 	err := json.Unmarshal(data, &state)
 	if err != nil {
-		return nil, uuid.Nil, fmt.Errorf("failed to determine game type")
+		return nil, uuid.Nil, fmt.Errorf("failed to unmarshal gameId")
 	}
 
-	h, ok := gameHandlers[state.Type]
+	gameType, err := db.GetLobbyProperty[string](state.Id, "gameType")
+	if err != nil {
+		return nil, state.Id, err
+	}
+
+	h, ok := gameHandlers[gameType]
 	if !ok {
 		return nil, state.Id, fmt.Errorf("game type not found in list")
 	}
@@ -46,13 +52,13 @@ func HandleAction(c interfaces.GameCommunication, playerId uuid.UUID, data json.
 		return err
 	}
 
-	if !db.IsUserInGame(playerId, id) {
-		return fmt.Errorf("you are not part of this game")
+	inGame, err := db.IsUserInLobby(id, playerId)
+	if err != nil {
+		return err
 	}
 
-	turnId, err := db.GetGameProperty[uuid.UUID](id, "turnId")
-	if err != nil || turnId != playerId {
-		return fmt.Errorf("it is not your turn")
+	if !inGame {
+		return fmt.Errorf("you are not part of this game")
 	}
 
 	return h.HandleAction(c, id, playerId, data)
@@ -63,34 +69,32 @@ func HandleReady(c interfaces.GameCommunication, playerId uuid.UUID, data json.R
 	if err != nil {
 		return err
 	}
-	if !db.IsUserInGame(playerId, id) {
+	inGame, err := db.IsUserInLobby(id, playerId)
+	if err != nil {
+		return err
+	}
+
+	if !inGame {
 		return fmt.Errorf("you are not part of this game")
 	}
 
 	return h.HandleReady(c, id, playerId)
 }
 
-type NewGame struct {
-	Type    string
-	LobbyId uuid.UUID
-	Options json.RawMessage
-}
-
-func New(data json.RawMessage) (uuid.UUID, error) {
-	var newGame NewGame
-	err := json.Unmarshal(data, &newGame)
+func New(lobbyId uuid.UUID) error {
+	gameType, err := db.GetLobbyProperty[string](lobbyId, "gameType")
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("failed to unmarshal new game data")
+		return err
 	}
 
-	h, ok := gameHandlers[newGame.Type]
+	h, ok := gameHandlers[gameType]
 	if !ok {
-		return uuid.Nil, fmt.Errorf("unrecognized game type")
+		return fmt.Errorf("unrecognized game type")
 	}
 
-	playerMap, err := db.GetLobbyUsers(newGame.LobbyId)
+	playerMap, err := db.GetLobbyUsers(lobbyId)
 	if err != nil {
-		return uuid.Nil, err
+		return err
 	}
 	players := make([]uuid.UUID, len(playerMap))
 	i := 0
@@ -99,19 +103,43 @@ func New(data json.RawMessage) (uuid.UUID, error) {
 		i++
 	}
 
-	id, err := db.NewGame(newGame.Type, players)
+	options, err := db.GetLobbyProperty[json.RawMessage](lobbyId, "options")
 	if err != nil {
-		return id, err
+		return fmt.Errorf("failed to get options from lobby")
 	}
 
-	err = h.New(id, newGame.Options)
+	err = h.New(lobbyId, options)
 	if err != nil {
-		return id, err
+		return err
 	}
 
-	for _, player := range players {
-		db.SetUserGame(player, id)
+	err = db.SetLobbyProperty(lobbyId, "inGame", true)
+	if err != nil {
+		return err
 	}
 
-	return id, nil
+	return nil
+}
+
+func HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error {
+	gameType, err := db.GetLobbyProperty[string](gameId, "gameType")
+	if err != nil {
+		return fmt.Errorf("failed to get game type")
+	}
+
+	h, ok := gameHandlers[gameType]
+	if !ok {
+		return fmt.Errorf("unrecognized game type")
+	}
+
+	return h.HandleLeave(c, gameId, playerId)
+}
+
+func GetDefaultOptions(gameType string) (any, error) {
+	h, ok := gameHandlers[gameType]
+	if !ok {
+		return nil, fmt.Errorf("unrecognized game type")
+	}
+
+	return h.DefaultOptions(), nil
 }

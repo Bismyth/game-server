@@ -10,8 +10,10 @@ import (
 )
 
 type m_User struct {
-	Id   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
+	Id       uuid.UUID   `json:"id"`
+	Name     string      `json:"name"`
+	LobbyIds []uuid.UUID `json:"lobbies"`
+	Token    string      `json:"token"`
 }
 
 var nameGenerator = namegenerator.NewNameGenerator(time.Now().UTC().UnixNano())
@@ -41,27 +43,64 @@ func SetUserId(requestID uuid.UUID) uuid.UUID {
 const pt_OUserInit OPacketType = "server_user_init"
 
 func UserInitPacket(userId uuid.UUID) []byte {
-	name, err := db.GetUserName(userId)
+	userMessage, err := makeUserMessage(userId)
 	if err != nil {
-		log.Panic("Failed to initilize user")
+		log.Println("Could not make user correctly")
+	}
+	t, err := GenerateToken(userId)
+	if err != nil {
+		log.Println(err)
+		log.Println("failed to make jwt token")
 	}
 
-	oData := m_User{
-		Id:   userId,
-		Name: name,
-	}
+	userMessage.Token = t
 
-	oPacket := mp(pt_OUserInit, oData)
+	oPacket := mp(pt_OUserInit, userMessage)
 
 	return MarshalPacket(&oPacket)
 }
 
-// User change event
-const pt_IUserChange IPacketType = "client_user_change"
+func makeUserMessage(userId uuid.UUID) (m_User, error) {
+	var user m_User
+	user.Id = userId
+
+	name, err := db.GetUserName(userId)
+	if err != nil {
+		return user, err
+	}
+	user.Name = name
+
+	lobbies, err := db.GetUserLobbies(userId)
+	if err != nil {
+		return user, err
+	}
+	user.LobbyIds = lobbies
+
+	return user, nil
+}
+
 const pt_OUserChange OPacketType = "server_user_change"
 
-func handleUserChange(i HandlerInput) error {
-	iUserChange, err := hp[m_User](i.Packet)
+type m_UserChange struct {
+	Name string
+}
+
+func sendUserChange(c Client, userId uuid.UUID) error {
+	userMessage, err := makeUserMessage(userId)
+	if err != nil {
+		return err
+	}
+
+	oPacket := mp(pt_OUserChange, userMessage)
+	Send(c, userId, &oPacket)
+	return nil
+}
+
+// User change event
+const pt_IUserNameChange IPacketType = "client_user_name_change"
+
+func handleUserNameChange(i HandlerInput) error {
+	iUserChange, err := hp[m_UserChange](i.Packet)
 	if err != nil {
 		return err
 	}
@@ -71,13 +110,19 @@ func handleUserChange(i HandlerInput) error {
 		return err
 	}
 
-	oUserChange := m_User{
-		Id:   i.UserId,
-		Name: iUserChange.Name,
+	err = sendUserChange(i.C, i.UserId)
+	if err != nil {
+		return err
 	}
 
-	oPacket := mp(pt_OUserChange, oUserChange)
-	Send(i.C, i.UserId, &oPacket)
+	ids, err := db.GetUserLobbies(i.UserId)
+	if err != nil {
+		return err
+	}
+
+	for _, lobbyId := range ids {
+		sendLobbyUserChange(i.C, lobbyId)
+	}
 
 	return nil
 }

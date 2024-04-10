@@ -3,6 +3,8 @@ package server
 import (
 	"log"
 	"net/http"
+	"os"
+	"path"
 
 	"github.com/Bismyth/game-server/pkg/config"
 	"github.com/Bismyth/game-server/pkg/ws"
@@ -20,8 +22,7 @@ func New(c *config.Config, wshub *ws.Hub) *Server {
 
 func (S *Server) Run() {
 	if S.Config.Application.Production {
-		fs := http.FileServer(http.Dir(S.Config.Application.PublicDir))
-		http.Handle("/", fs)
+		http.Handle("/", ServeStaticSPA(S.Config.Application.PublicDir))
 	}
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
@@ -33,4 +34,17 @@ func (S *Server) Run() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func ServeStaticSPA(servePath string) http.Handler {
+	fs := http.Dir(servePath)
+	fsh := http.FileServer(fs)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, err := fs.Open(path.Clean(r.URL.Path))
+		if os.IsNotExist(err) {
+			http.ServeFile(w, r, path.Join(servePath, "index.html"))
+			return
+		}
+		fsh.ServeHTTP(w, r)
+	})
 }

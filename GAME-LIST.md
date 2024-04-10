@@ -5,3 +5,4 @@
 - Fool
 - Lucky
 - Blackjack?
+- One night Werewolf

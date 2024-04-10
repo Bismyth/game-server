@@ -30,51 +30,55 @@ const changeMode = (e: Event) => {
 </script>
 
 <template>
-  <div class="navbar-item has-dropdown is-hoverable">
-    <a class="navbar-link">
-      <Icon :icon="`fa6-solid:${darkMode === null ? 'desktop' : darkMode ? 'moon' : 'sun'}`" />
-    </a>
-
-    <div class="navbar-dropdown">
-      <a
-        class="navbar-item"
-        :class="{ 'is-selected': darkMode === true }"
-        @click="changeMode"
-        mode="dark"
-      >
-        <span class="icon-text is-small no-mouse">
-          <span class="icon">
-            <Icon icon="fa6-solid:moon" />
+  <div class="dropdown is-hoverable is-right">
+    <div class="dropdown-trigger">
+      <button class="button" aria-haspopup="true" aria-controls="dropdown-menu">
+        <Icon :icon="`fa6-solid:${darkMode === null ? 'desktop' : darkMode ? 'moon' : 'sun'}`" />
+        <Icon class="icon is-small" icon="fa6-solid:angle-down" />
+      </button>
+    </div>
+    <div class="dropdown-menu" id="dropdown-menu" role="menu">
+      <div class="dropdown-content">
+        <a
+          class="dropdown-item"
+          :class="{ 'is-selected': darkMode === true }"
+          @click="changeMode"
+          mode="dark"
+        >
+          <span class="icon-text is-small no-mouse">
+            <span class="icon">
+              <Icon icon="fa6-solid:moon" />
+            </span>
+            <span>Dark</span>
           </span>
-          <span>Dark</span>
-        </span>
-      </a>
-      <a
-        class="navbar-item"
-        :class="{ 'is-selected': darkMode === false }"
-        @click="changeMode"
-        mode="light"
-      >
-        <span class="icon-text is-small no-mouse">
-          <span class="icon">
-            <Icon icon="fa6-solid:sun" />
+        </a>
+        <a
+          class="dropdown-item"
+          :class="{ 'is-selected': darkMode === false }"
+          @click="changeMode"
+          mode="light"
+        >
+          <span class="icon-text is-small no-mouse">
+            <span class="icon">
+              <Icon icon="fa6-solid:sun" />
+            </span>
+            <span>Light</span>
           </span>
-          <span>Light</span>
-        </span>
-      </a>
-      <a
-        class="navbar-item"
-        :class="{ 'is-selected': darkMode === null }"
-        @click="changeMode"
-        mode="system"
-      >
-        <span class="icon-text is-small no-mouse">
-          <span class="icon">
-            <Icon icon="fa6-solid:desktop" />
+        </a>
+        <a
+          class="dropdown-item"
+          :class="{ 'is-selected': darkMode === null }"
+          @click="changeMode"
+          mode="system"
+        >
+          <span class="icon-text is-small no-mouse">
+            <span class="icon">
+              <Icon icon="fa6-solid:desktop" />
+            </span>
+            <span>System</span>
           </span>
-          <span>System</span>
-        </span>
-      </a>
+        </a>
+      </div>
     </div>
   </div>
 </template>

@@ -1,17 +1,30 @@
 /* eslint-disable prefer-const */
-import game, { handleGameState } from '@/api/game'
-import { reactive, ref, type Ref } from 'vue'
+import api from '@/api'
+import { useUserStore } from '@/stores/user'
+import { reactive, ref } from 'vue'
 import { z } from 'zod'
 
-const gameType = 'liarsdice'
+const roundInfoSchema = z.object({
+  round: z.number().int(),
+  highestBid: z.string(),
+  hands: z.record(z.string(), z.array(z.number())).nullable(),
+  callUser: z.string().uuid(),
+  lastBid: z.string().uuid(),
+  diceLost: z.string().uuid(),
+})
 
 const publicStateSchema = z.object({
   playerTurn: z.string().uuid(),
   diceAmounts: z.record(z.string(), z.number().int()),
   highestBid: z.string(),
+  turnOrder: z.array(z.string()),
+  gameOver: z.boolean(),
+  previousRound: roundInfoSchema,
 })
 
 type publicStateT = z.infer<typeof publicStateSchema>
+
+export type RoundInfo = z.infer<typeof roundInfoSchema>
 
 const privateStateScehma = z.object({
   dice: z.array(z.number().int().min(1).max(6)),
@@ -24,23 +37,36 @@ const stateSchema = z.object({
 
 type privateStateT = z.infer<typeof privateStateScehma>
 
-let state: { id: string; type: 'liarsdice' }
+let idStore = ''
 
 const create = (id: string) => {
-  state = {
-    id: id,
-    type: gameType,
-  }
+  idStore = id
 
-  game.setHandleAction(handleAction)
-  game.setHandleEvent(handleEvent)
-  game.setHandleState(handleState)
+  api.game.handleAction.fn = handleAction
+  api.game.handleEvent.fn = handleEvent
+  api.game.handleState.fn = handleState
 
-  ready()
+  resetValues()
+
+  ready(idStore)
+}
+
+const resetValues = () => {
+  showCall.value = false
+  showGameOver.value = false
+  gameData.publicState = undefined
+  gameData.privateState = undefined
+  gameData.isTurn = false
+  gameData.currentOptions = []
+}
+
+interface computedPublic {
+  bidAmount: number
+  bidFace: number
 }
 
 const gameData = reactive<{
-  publicState: publicStateT | undefined
+  publicState: (publicStateT & computedPublic) | undefined
   privateState: privateStateT | undefined
   isTurn: boolean
   currentOptions: string[]
@@ -51,24 +77,40 @@ const gameData = reactive<{
   currentOptions: [],
 })
 
-const ready = () => {
-  game.ready(state)
+const showCall = ref(false)
+const showGameOver = ref(false)
+const rollHand = ref(false)
+const rollHandTime = 3 * 1000 //5 seconds
+
+let triggerRollHand = false
+
+const ready = (lobbyId: string) => {
+  api.game.ready(lobbyId)
 }
 
-const takeAction = (option: string, data: any) => {
+const takeAction = (lobbyId: string, option: string, data: any) => {
   if (!gameData.isTurn) {
     return
   }
-  game.action(state, option, data)
-  gameData.isTurn = false
+  api.game.action(lobbyId, option, data)
 }
 
-const bid = (bid: string) => {
-  takeAction('bid', { bid })
+const bid = (lobbyId: string, bid: string) => {
+  takeAction(lobbyId, 'bid', { bid })
 }
 
-const call = () => {
-  takeAction('call', undefined)
+const call = (lobbyId: string) => {
+  takeAction(lobbyId, 'call', undefined)
+}
+
+const closeCallScreen = () => {
+  if (triggerRollHand) {
+    rollHand.value = true
+    setTimeout(() => {
+      rollHand.value = false
+    }, rollHandTime)
+    triggerRollHand = false
+  }
 }
 
 const handleState = (data: unknown) => {
@@ -80,13 +122,51 @@ const handleState = (data: unknown) => {
     return
   }
 
+  if (result.data.public?.gameOver && !showGameOver.value) {
+    showGameOver.value = true
+  }
+
+  let newRound = false
+
   if (result.data.public) {
-    gameData.publicState = result.data.public
+    newRound =
+      result.data.public.previousRound.round !== gameData.publicState?.previousRound.round &&
+      gameData.publicState !== undefined &&
+      !result.data.public.gameOver
+    if (newRound) {
+      showCall.value = true
+    }
+
+    const [a, f] = splitBid(result.data.public.highestBid)
+    gameData.publicState = {
+      ...result.data.public,
+      bidAmount: a,
+      bidFace: f,
+    }
   }
   if (result.data.private) {
+    if (gameData.privateState !== undefined) {
+      triggerRollHand = true
+    }
     gameData.privateState = result.data.private
   }
+
+  const user = useUserStore()
+
+  if (result.data.public) {
+    gameData.isTurn = result.data.public.playerTurn === user.data.id
+  }
 }
+
+const splitBid = (bid: string): [number, number] => {
+  const bidSplit = bid.split(',')
+  if (bidSplit.length !== 2) {
+    return [0, 0]
+  }
+
+  return [parseInt(bidSplit[0]), parseInt(bidSplit[1])]
+}
+
 const handleAction = (data: unknown) => {
   const result = z.array(z.string()).safeParse(data)
   if (!result.success) {
@@ -94,19 +174,10 @@ const handleAction = (data: unknown) => {
     console.error('bad data')
     return
   }
-  gameData.isTurn = true
   gameData.currentOptions = result.data
 }
 const handleEvent = (data: unknown) => {
   console.log(data)
 }
 
-export default { create, bid, call, gameData }
-
-const optionsSchema = z.object({
-  startingDice: z.number().int().min(1).max(99),
-})
-
-export const createGame = (lobbyId: string, options: { startingDice: number }) => {
-  game.newGame(gameType, lobbyId, options)
-}
+export default { create, bid, call, gameData, showCall, showGameOver, rollHand, closeCallScreen }
