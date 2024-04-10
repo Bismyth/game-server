@@ -70,8 +70,9 @@ export const useLobbyStore = defineStore('lobby', () => {
   }
 
   const leave = () => {
-    api.lobby.leave(id.value)
+    const oldId = id.value
     clear()
+    api.lobby.leave(oldId)
   }
 
   return { id, users, gameType, inGame, ready, options, getInfo, clear, leave }

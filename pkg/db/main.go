@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"reflect"
@@ -136,14 +137,24 @@ func Encode(t interface{}) (string, error) {
 	switch v := t.(type) {
 	case string:
 		return v, nil
+	case *string:
+		return *v, nil
 	case int:
 		return strconv.Itoa(v), nil
+	case *int:
+		return strconv.Itoa(*v), nil
 	case int64:
 		return strconv.FormatInt(v, 10), nil
+	case *int64:
+		return strconv.FormatInt(*v, 10), nil
 	case uuid.UUID:
+		return v.String(), nil
+	case *uuid.UUID:
 		return v.String(), nil
 	case bool:
 		return strconv.FormatBool(v), nil
+	case *bool:
+		return strconv.FormatBool(*v), nil
 	default:
 		raw, err := json.Marshal(t)
 		return string(raw), err
@@ -190,4 +201,8 @@ func Decode(raw []byte, output interface{}) error {
 	}
 
 	return nil
+}
+
+func IsNilErr(err error) bool {
+	return errors.Is(err, redis.Nil)
 }

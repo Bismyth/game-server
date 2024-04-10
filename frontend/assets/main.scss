@@ -65,8 +65,10 @@ $purple: #6c0f6a;
   width: 100%;
 }
 
-.logo-header > .outer {
-  width: 75px;
+.logo-header > .title-box {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, 0%);
 }
 
 .b-primary {

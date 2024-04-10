@@ -35,11 +35,11 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) error {
 		return fmt.Errorf("failed to parse options")
 	}
 
-	if err := db.SetGameProperty(gameId, "bid", ""); err != nil {
+	if err := SetProperty(gameId, d_bid, ""); err != nil {
 		return err
 	}
 
-	if err := db.SetGameProperty(gameId, "gameOver", false); err != nil {
+	if err := SetProperty(gameId, d_gameOver, false); err != nil {
 		return err
 	}
 
@@ -53,6 +53,14 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) error {
 			return err
 		}
 		db.PlayerGiveType(gameId, player, playerType)
+	}
+
+	pr := RoundInfo{
+		Round: 0,
+	}
+	err = SetProperty(gameId, d_previousRound, pr)
+	if err != nil {
+		return err
 	}
 
 	c := db.GetCursor(gameId, playerType)
@@ -69,7 +77,6 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) error {
 }
 
 func (h *Handler) HandleAction(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID, data json.RawMessage) error {
-
 	var response ActionResponse
 
 	var err error
@@ -90,7 +97,7 @@ func (h *Handler) HandleAction(c interfaces.GameCommunication, gameId uuid.UUID,
 
 	switch response.Option {
 	case ga_bid:
-		err = handleBid(gameId, response.Data.Bid)
+		err = handleBid(c, gameId, response.Data.Bid)
 	case ga_call:
 		err = handleCall(c, gameId)
 	default:
@@ -99,25 +106,6 @@ func (h *Handler) HandleAction(c interfaces.GameCommunication, gameId uuid.UUID,
 	if err != nil {
 		return err
 	}
-
-	nextPlayer, err := cursor.Next()
-	if err != nil {
-		return err
-	}
-
-	err = cachePublicGameState(gameId)
-	if err != nil {
-		return err
-	}
-
-	publicGs, err := getPublicGameState(gameId)
-	if err != nil {
-		return err
-	}
-	gs := GameState{Public: publicGs}
-
-	c.SendGlobal(gs)
-	c.ActionPrompt(nextPlayer, allActions)
 
 	return nil
 }
@@ -176,7 +164,10 @@ func (h *Handler) HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, 
 	}
 
 	if end {
-		endGame(c, gameId)
+		err = endGame(c, gameId, nil)
+		if err != nil {
+			return err
+		}
 	} else {
 		err = cachePublicGameState(gameId)
 		if err != nil {

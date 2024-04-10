@@ -10,12 +10,15 @@ import { useLobbyStore } from '@/stores/lobby'
 import { Icon } from '@iconify/vue'
 import CallModal from './CallModal.vue'
 import { useUserStore } from '@/stores/user'
+import EndGame from './EndGame.vue'
+import { useRouter } from 'vue-router'
 
 const lobby = useLobbyStore()
 const user = useUserStore()
 
+const router = useRouter()
+
 onMounted(async () => {
-  console.log('REMOUNTED', lobby.id)
   ld.create(lobby.id)
 })
 
@@ -48,8 +51,21 @@ const totalDice = computed(() => {
   return 0
 })
 
+const showCall = () => {
+  ld.showCall.value = true
+}
+
 const handleCallScreenClose = () => {
   ld.showCall.value = false
+  ld.closeCallScreen()
+}
+
+const handleGameOverClose = () => {
+  ld.showGameOver.value = false
+}
+
+const handleLobbyBack = () => {
+  router.replace({ name: 'lobby' })
 }
 </script>
 
@@ -59,10 +75,23 @@ const handleCallScreenClose = () => {
     <div class="box b-primary container">
       <div class="logo-header mb-6">
         <div class="outer">
-          <IconButton icon="fa6-solid:arrow-left" label="Leave" @click="leave" />
+          <IconButton
+            icon="fa6-solid:arrow-left"
+            label="Back to Lobby"
+            @click="handleLobbyBack"
+            v-if="ld.gameData.publicState?.gameOver"
+          />
+          <IconButton icon="fa6-solid:arrow-left" label="Leave" @click="leave" v-else />
         </div>
-        <div><h1 class="title">Liars Dice</h1></div>
-        <div class="outer"></div>
+        <div class="title-box"><h1 class="title">Liars Dice</h1></div>
+        <div class="outer">
+          <IconButton
+            icon="fa6-solid:clock-rotate-left"
+            @click="showCall"
+            label="Previous Round"
+            v-if="(ld.gameData.publicState?.previousRound.round ?? 0) != 0"
+          />
+        </div>
       </div>
       <div class="body-wrapper">
         <div class="box mb-0 is-1">
@@ -94,14 +123,17 @@ const handleCallScreenClose = () => {
           <h4 class="title is-5">Out</h4>
           <div>
             <div v-for="id in outPlayers" :key="id">
-              <span> ({{ lobby.users[id].name }}) </span>
+              <span> {{ lobby.users[id].name }} </span>
             </div>
           </div>
         </div>
         <div class="box is-5">
           <div class="mb-4">
             <h4 class="title is-4 mb-2">Hand</h4>
-            <DiceHand :true-value="ld.gameData.privateState?.dice ?? []" />
+            <DiceHand
+              :true-value="ld.gameData.privateState?.dice ?? []"
+              :shuffle="ld.rollHand.value"
+            />
           </div>
           <div>
             <h4 class="title is-4 mb-2">Highest Bid</h4>
@@ -125,5 +157,15 @@ const handleCallScreenClose = () => {
       </div>
     </div>
   </main>
-  <CallModal :show="ld.showCall.value" @close="handleCallScreenClose" />
+  <CallModal
+    :show="ld.showCall.value"
+    @close="handleCallScreenClose"
+    :data="ld.gameData.publicState?.previousRound"
+  />
+  <EndGame
+    :show="ld.showGameOver.value"
+    :last-player="lobby.users[ld.gameData.publicState?.turnOrder[0] ?? '']?.name"
+    @close="handleGameOverClose"
+    @back="handleLobbyBack"
+  />
 </template>

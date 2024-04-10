@@ -15,13 +15,13 @@ func cachePublicGameState(gameId uuid.UUID) error {
 
 	gs.TurnOrder = players
 
-	hb, err := db.GetGameProperty[string](gameId, "bid")
+	hb, err := GetProperty[string](gameId, d_bid)
 	if err != nil {
 		return err
 	}
 	gs.HighestBid = hb
 
-	gameOver, err := db.GetGameProperty[bool](gameId, "gameOver")
+	gameOver, err := GetProperty[bool](gameId, d_gameOver)
 	if err != nil {
 		return err
 	}
@@ -46,6 +46,12 @@ func cachePublicGameState(gameId uuid.UUID) error {
 		playerDice[player] = num
 	}
 	gs.DiceAmounts = playerDice
+
+	pr, err := GetProperty[RoundInfo](gameId, d_previousRound)
+	if err != nil {
+		return err
+	}
+	gs.PreviousRound = pr
 
 	err = db.SetGameCache(gameId, gs)
 	if err != nil {

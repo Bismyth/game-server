@@ -68,6 +68,11 @@ func gameNew(i HandlerInput) error {
 		return err
 	}
 
+	err = makeChangesAllowed(*lobbyId, i.UserId)
+	if err != nil {
+		return err
+	}
+
 	err = game.New(*lobbyId)
 	if err != nil {
 		SendGameErr(i.C, i.UserId, err)

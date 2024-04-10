@@ -8,6 +8,71 @@ import (
 	"github.com/google/uuid"
 )
 
+func progressTurn(c interfaces.GameCommunication, gameId uuid.UUID) error {
+	cursor := db.GetCursor(gameId, playerType)
+	nextPlayer, err := cursor.Next()
+	if err != nil {
+		return err
+	}
+
+	err = cachePublicGameState(gameId)
+	if err != nil {
+		return err
+	}
+
+	publicGs, err := getPublicGameState(gameId)
+	if err != nil {
+		return err
+	}
+	gs := GameState{Public: publicGs}
+
+	c.SendGlobal(gs)
+	c.ActionPrompt(nextPlayer, allActions)
+
+	return nil
+}
+
+func newRound(c interfaces.GameCommunication, gameId uuid.UUID, pvInfo *ParsedRoundInfo) error {
+	players, err := db.PlayerTypeGetAll(gameId, playerType)
+	if err != nil {
+		return err
+	}
+
+	pr, err := generatePreviousRound(gameId, players, pvInfo)
+	if err != nil {
+		return err
+	}
+	err = SetProperty(gameId, d_previousRound, pr)
+	if err != nil {
+		return err
+	}
+
+	err = rollHands(gameId, players)
+	if err != nil {
+		return err
+	}
+
+	for _, player := range players {
+		privateGs, err := getPrivateGameState(gameId, player)
+		if err != nil {
+			return err
+		}
+		c.SendPlayer(player, GameState{Private: privateGs})
+	}
+
+	err = SetProperty(gameId, d_bid, "")
+	if err != nil {
+		return err
+	}
+
+	err = progressTurn(c, gameId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func rollHands(gameId uuid.UUID, players []uuid.UUID) error {
 	for _, playerId := range players {
 		numDice, err := db.GetPlayerProperty[int](gameId, playerId, "dice")
@@ -29,8 +94,56 @@ func rollHands(gameId uuid.UUID, players []uuid.UUID) error {
 	return nil
 }
 
-func endGame(c interfaces.GameCommunication, gameId uuid.UUID) error {
-	err := db.SetGameProperty(gameId, "gameOver", true)
+func generatePreviousRound(gameId uuid.UUID, players []uuid.UUID, pvInfo *ParsedRoundInfo) (*RoundInfo, error) {
+	r, err := GetProperty[RoundInfo](gameId, d_previousRound)
+	if err != nil {
+		return nil, err
+	}
+
+	var roundInfo RoundInfo
+
+	roundInfo.Round = r.Round + 1
+
+	hb, err := GetProperty[string](gameId, d_bid)
+	if err != nil {
+		return nil, err
+	}
+	roundInfo.HighestBid = hb
+
+	roundInfo.Hands = make(map[uuid.UUID][]int)
+
+	for _, id := range players {
+		h, err := db.GetPlayerProperty[[]int](gameId, id, "hand")
+		if err != nil {
+			return nil, err
+		}
+		roundInfo.Hands[id] = h
+	}
+
+	if pvInfo != nil {
+		roundInfo.CallUser = pvInfo.CallUser
+		roundInfo.DiceLost = pvInfo.DiceLost
+		roundInfo.LastBid = pvInfo.LastBid
+	}
+
+	return &roundInfo, nil
+}
+
+func endGame(c interfaces.GameCommunication, gameId uuid.UUID, pvInfo *ParsedRoundInfo) error {
+	err := SetProperty(gameId, d_gameOver, true)
+	if err != nil {
+		return err
+	}
+
+	players, err := db.PlayerTypeGetAll(gameId, playerType)
+	if err != nil {
+		return err
+	}
+	pr, err := generatePreviousRound(gameId, players, pvInfo)
+	if err != nil {
+		return err
+	}
+	err = SetProperty(gameId, d_previousRound, pr)
 	if err != nil {
 		return err
 	}
@@ -65,7 +178,6 @@ func endGame(c interfaces.GameCommunication, gameId uuid.UUID) error {
 }
 
 func cleanup(gameId uuid.UUID) error {
-
 	c := db.GetCursor(gameId, playerType)
 	err := c.Delete()
 	if err != nil {

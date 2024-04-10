@@ -45,11 +45,13 @@ const shareLink = () => {
   <main class="centerize">
     <ErrorStore />
     <div class="box container b-primary" v-if="lobby.ready">
-      <div class="logo-header mb-6">
+      <div class="logo-header mb-4">
         <div class="outer">
           <IconButton icon="fa6-solid:arrow-left" label="Leave" @click="leave" />
         </div>
-        <FullLogo :width="300" />
+        <div>
+          <FullLogo :width="300" class="title-box" />
+        </div>
         <div class="outer">
           <DarkModeToggle />
         </div>
@@ -97,6 +99,7 @@ const shareLink = () => {
                 icon="fa6-solid:play"
                 color="primary"
                 :disabled="lobby.gameType === ''"
+                v-if="isHost"
               />
             </div>
           </div>

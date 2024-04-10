@@ -218,5 +218,10 @@ func (c *Cursor) Delete() error {
 		return err
 	}
 
+	err = conn.Del(ctx, ic(c.key)).Err()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

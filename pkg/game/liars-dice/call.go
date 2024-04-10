@@ -24,7 +24,7 @@ func getAllDice(gameId uuid.UUID) ([]int, error) {
 
 // returns true if bid was met, false if bid was a lie
 func evalBid(gameId uuid.UUID) (bool, error) {
-	currentBid, err := db.GetGameProperty[string](gameId, "bid")
+	currentBid, err := GetProperty[string](gameId, d_bid)
 	if err != nil {
 		return false, err
 	}
@@ -72,6 +72,7 @@ func loseDiceAtCursor(gameId uuid.UUID, playerCursor *db.Cursor) (int, error) {
 
 func handleCall(c interfaces.GameCommunication, gameId uuid.UUID) error {
 	var err error
+	var pvInfo ParsedRoundInfo
 
 	bidRight, err := evalBid(gameId)
 	if err != nil {
@@ -80,9 +81,28 @@ func handleCall(c interfaces.GameCommunication, gameId uuid.UUID) error {
 
 	playerCursor := db.GetCursor(gameId, playerType)
 
+	cu, err := playerCursor.Current()
+	if err != nil {
+		return err
+	}
+	pvInfo.CallUser = cu
+
+	pv, err := playerCursor.PeekPrevious()
+	if err != nil {
+		return err
+	}
+	pvInfo.LastBid = pv
+
 	if !bidRight {
 		playerCursor.Previous()
 	}
+
+	lostUser, err := playerCursor.Current()
+	if err != nil {
+		return err
+	}
+	pvInfo.DiceLost = lostUser
+
 	a, err := loseDiceAtCursor(gameId, playerCursor)
 	if err != nil {
 		return err
@@ -98,7 +118,8 @@ func handleCall(c interfaces.GameCommunication, gameId uuid.UUID) error {
 			return err
 		}
 		if end {
-			endGame(c, gameId)
+			endGame(c, gameId, &pvInfo)
+			return nil
 		}
 	}
 
@@ -106,24 +127,7 @@ func handleCall(c interfaces.GameCommunication, gameId uuid.UUID) error {
 		playerCursor.Next()
 	}
 
-	players, err := db.PlayerTypeGetAll(gameId, playerType)
-	if err != nil {
-		return err
-	}
-	err = rollHands(gameId, players)
-	if err != nil {
-		return err
-	}
-
-	for _, player := range players {
-		privateGs, err := getPrivateGameState(gameId, player)
-		if err != nil {
-			return err
-		}
-		c.SendPlayer(player, GameState{Private: privateGs})
-	}
-
-	err = db.SetGameProperty(gameId, "bid", "")
+	err = newRound(c, gameId, &pvInfo)
 	if err != nil {
 		return err
 	}
