@@ -3,7 +3,7 @@ import FormWrap from '@/components/FormWrap.vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { ref } from 'vue'
 import { useLobbyStore } from '@/stores/lobby'
-import { optionsSchema, type Options } from '@/game/liarsdice/options'
+import { optionsSchema, type Options } from '@/game/onenightwerewolf/options'
 
 const emit = defineEmits<{
   submit: [T: Options]
@@ -33,13 +33,8 @@ defineExpose({
 
 <template>
   <FormWrap :schema="optionsSchema" @submit="submit" ref="formWrap">
-    <template #default="context">
-      <div class="field">
-        <label class="label">Starting Dice</label>
-        <div class="control">
-          <input class="input" v-model="context.data.startingDice" type="number" />
-        </div>
-      </div>
+    <template #default>
+      <h1>Options Form</h1>
     </template>
   </FormWrap>
 </template>

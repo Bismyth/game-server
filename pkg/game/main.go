@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	liarsdice "github.com/Bismyth/game-server/pkg/game/liars-dice"
+	onenight "github.com/Bismyth/game-server/pkg/game/one-night"
 )
 
 type GameHandler interface {
@@ -21,6 +22,7 @@ type GameHandler interface {
 
 var gameHandlers map[string]GameHandler = map[string]GameHandler{
 	liarsdice.Code: liarsdice.New(),
+	onenight.Code:  onenight.New(),
 }
 
 type SharedState struct {

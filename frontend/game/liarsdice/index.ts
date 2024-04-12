@@ -37,18 +37,14 @@ const stateSchema = z.object({
 
 type privateStateT = z.infer<typeof privateStateScehma>
 
-let idStore = ''
-
 const create = (id: string) => {
-  idStore = id
-
   api.game.handleAction.fn = handleAction
   api.game.handleEvent.fn = handleEvent
   api.game.handleState.fn = handleState
 
   resetValues()
 
-  ready(idStore)
+  ready(id)
 }
 
 const resetValues = () => {
