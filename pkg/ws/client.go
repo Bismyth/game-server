@@ -43,13 +43,18 @@ func AllowedOriginCheck(r *http.Request) bool {
 		return false
 	}
 
-	if strings.EqualFold(u.Host, r.Host) {
-		return true
+	// ? load allowed origins from config
+	origins := []string{
+		r.Host,
+		"localhost:8080",
+		"bismyth.github.io",
+		"met4000.github.io",
 	}
 
-	// DEV ORIGIN Override
-	if u.Host == "localhost:8080" {
-		return true
+	for _, origin := range origins {
+		if strconv.FormatBool(strings.EqualFold(origin, u.Host)) {
+			return true
+		}
 	}
 
 	return false
