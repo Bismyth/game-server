@@ -52,7 +52,7 @@ func AllowedOriginCheck(r *http.Request) bool {
 	}
 
 	for _, origin := range origins {
-		if strconv.FormatBool(strings.EqualFold(origin, u.Host)) {
+		if strings.EqualFold(origin, u.Host) {
 			return true
 		}
 	}
