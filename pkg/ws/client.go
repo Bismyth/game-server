@@ -33,6 +33,13 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin:     AllowedOriginCheck,
 }
 
+// TODO: add array to config
+var allowedOrigins = []string{
+	"localhost:8080",
+	"bismyth.github.io",
+	"met4000.github.io",
+}
+
 func AllowedOriginCheck(r *http.Request) bool {
 	origin := r.Header["Origin"]
 	if len(origin) == 0 {
@@ -47,9 +54,10 @@ func AllowedOriginCheck(r *http.Request) bool {
 		return true
 	}
 
-	// DEV ORIGIN Override
-	if u.Host == "localhost:8080" {
-		return true
+	for _, origin := range allowedOrigins {
+		if strings.EqualFold(origin, u.Host) {
+			return true
+		}
 	}
 
 	return false
