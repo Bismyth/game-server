@@ -7,12 +7,7 @@ import (
 func getPrivateInfo(gameId, playerId uuid.UUID) (*PrivateGameState, error) {
 	var pi PrivateGameState
 
-	pos, err := GetPlayerProperty[int](gameId, playerId, pd_position)
-	if err != nil {
-		return nil, err
-	}
-
-	role, err := GetProperty[Role](gameId, rolePos(pos))
+	role, err := GetPlayerProperty[Role](gameId, playerId, pd_initialRole)
 	if err != nil {
 		return nil, err
 	}

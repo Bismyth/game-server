@@ -36,6 +36,11 @@ func (h *Handler) New(gameId uuid.UUID, options []byte) error {
 		return fmt.Errorf("night time not set")
 	}
 
+	err = SetProperty(gameId, d_nightTime, parsedOptions.NightTime)
+	if err != nil {
+		return err
+	}
+
 	if !ValidateRoleAmounts(parsedOptions.Roles) {
 		return fmt.Errorf("invalid role set given")
 	}
@@ -73,6 +78,10 @@ func (h *Handler) New(gameId uuid.UUID, options []byte) error {
 		if err != nil {
 			return err
 		}
+		err = SetPlayerProperty(gameId, player, pd_initialRole, parsedOptions.Roles[i+3])
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -98,7 +107,24 @@ func (h *Handler) HandleReady(c interfaces.GameCommunication, gameId uuid.UUID, 
 
 func (h *Handler) HandleAction(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID, data json.RawMessage) error {
 
-	return fmt.Errorf("not implemented")
+	var parsedAction Action
+	err := json.Unmarshal(data, &parsedAction)
+	if err != nil {
+		return err
+	}
+
+	switch parsedAction.Option {
+	case ga_startNight:
+		err = startNight(c, gameId, playerId)
+	case ga_roleAction:
+		err = handleRoleAction(gameId, playerId, parsedAction.Role)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (h *Handler) HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error {

@@ -2,6 +2,7 @@ import api from '@/api'
 import { reactive } from 'vue'
 import { stateSchema } from './state'
 import type { PrivateState, PublicState } from './state'
+import type { Role } from './roles'
 
 const create = (id: string) => {
   api.game.handleAction.fn = handleAction
@@ -45,8 +46,40 @@ const ready = (id: string) => {
   api.game.ready(id)
 }
 
+const takeAction = (lobbyId: string, option: string, data: any) => {
+  api.game.action(lobbyId, option, data)
+}
+
+const startNight = (lobbyId: string) => {
+  takeAction(lobbyId, 'startNight', undefined)
+}
+
+const takeRoleAction = (lobbyId: string, role: Role, data: any) => {
+  takeAction(lobbyId, 'role', {
+    role,
+    data,
+  })
+}
+
+export const robberAction = (lobbyId: string, target: string) => {
+  takeRoleAction(lobbyId, 'robber', {
+    target,
+  })
+}
+
+export const seerAction = (
+  lobbyId: string,
+  single: string | undefined,
+  multi: [number, number] | undefined,
+) => {
+  takeRoleAction(lobbyId, 'seer', {
+    singleTarget: single,
+    multiTarget: multi,
+  })
+}
+
 const handleEvent = (data: unknown) => {
   console.log(data)
 }
 
-export default { create, data, ready }
+export default { create, data, ready, startNight }

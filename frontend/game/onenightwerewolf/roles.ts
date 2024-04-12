@@ -16,6 +16,8 @@ type RoleInfo = {
   name: string
 }
 
+export const roleActions: Role[] = ['robber']
+
 export const roleDisplay: Record<Role, RoleInfo> = {
   werewolf: {
     name: 'Werewolf',

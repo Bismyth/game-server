@@ -1,6 +1,7 @@
 package onenight
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/Bismyth/game-server/pkg/db"
@@ -18,11 +19,28 @@ type GameState struct {
 }
 
 type PublicGameState struct {
+	NightStarted bool
+	NightOver    bool
 }
 
 type PrivateGameState struct {
 	Role     Role   `json:"role"`
 	RoleInfo []byte `json:"roleInfo"`
+}
+
+type GameAction string
+
+const ga_roleAction GameAction = "role"
+const ga_startNight GameAction = "startNight"
+
+type RoleAction struct {
+	Role Role            `json:"role"`
+	Data json.RawMessage `json:"data"`
+}
+
+type Action struct {
+	Option GameAction
+	Role   RoleAction
 }
 
 type DBProperty string
@@ -32,6 +50,7 @@ const d_nightTime = "night"
 type DBPlayerProprety string
 
 const pd_position DBPlayerProprety = "position"
+const pd_initialRole DBPlayerProprety = "initialRole"
 const pd_data DBPlayerProprety = "data"
 
 func rolePos(i int) DBProperty {

@@ -1,5 +1,7 @@
 package onenight
 
+import "github.com/google/uuid"
+
 type Role string
 
 const role_werewolf = "werewolf"
@@ -31,4 +33,45 @@ func isValidRole(r Role) bool {
 		}
 	}
 	return false
+}
+
+type RobberInput struct {
+	Target uuid.UUID `json:"target"`
+}
+
+type SeerInput struct {
+	SingleTarget uuid.UUID `json:"singleTarget"`
+	MultiTarget  []int     `json:"multiTarget"`
+}
+
+type DrunkInput struct {
+	Target int
+}
+
+type TroubleMakerInput struct {
+	Target1 uuid.UUID
+	Target2 uuid.UUID
+}
+
+type RobberData struct {
+	Input RobberInput `json:"input"`
+	Stole Role        `json:"stole"`
+}
+
+type SeerData struct {
+	Input        SeerInput `json:"input"`
+	SingleResult Role      `json:"singleResult"`
+	MultiResult  []Role    `json:"multiResult"`
+}
+
+type WerewolfData struct {
+	Wolves []uuid.UUID
+}
+
+type MasonData struct {
+	Masons []uuid.UUID
+}
+
+type InsomniacData struct {
+	Result Role
 }
