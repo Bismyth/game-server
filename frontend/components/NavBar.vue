@@ -10,10 +10,7 @@ const changeName = () => {
   const username = prompt('Update username:')?.trim()
 
   if (username) {
-    api.user.sendChange({
-      id: user.data?.id ?? '',
-      name: username,
-    })
+    api.user.sendNameChange(username)
   }
 }
 </script>

@@ -9,6 +9,7 @@ require (
 	github.com/goombaio/namegenerator v0.0.0-20181006234301-989e774b106e
 	github.com/gorilla/websocket v1.5.1
 	github.com/joho/godotenv v1.5.1
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/redis/go-redis/v9 v9.5.1
 )
 
@@ -18,6 +19,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/stretchr/testify v1.9.0 // indirect
 	golang.org/x/crypto v0.21.0 // indirect

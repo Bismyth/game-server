@@ -1,42 +1,49 @@
-import { useUserStore } from '@/stores/user'
+import { useUserStore, userSchema } from '@/stores/user'
 import { parseData, sendMessage } from './main'
-import { z } from 'zod'
 import { OPacketType } from './packetTypes'
+import { useSocketStore } from '@/stores/socket'
+import { useLobbyStore } from '@/stores/lobby'
+import router from '@/router'
 
-const idLSKey = 'id'
-
-export const userMessageSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string(),
-})
-
-type userMessage = z.infer<typeof userMessageSchema>
+const idLSKey = 'id_token'
 
 export const handleUserInit = (data: unknown) => {
-  const parsedData = parseData(data, userMessageSchema)
+  const parsedData = parseData(data, userSchema)
 
-  localStorage.setItem(idLSKey, parsedData.id ?? 'wrong uuid')
+  localStorage.setItem(idLSKey, parsedData.token ?? '')
 
   const user = useUserStore()
   user.data = parsedData
+
+  const lobbyStore = useLobbyStore()
+  const socket = useSocketStore()
+  socket.userReady = true
+
+  if (user.data.lobbies.length > 0) {
+    lobbyStore.getInfo()
+  } else {
+    router.replace({ name: 'home', query: router.currentRoute.value.query })
+  }
 }
 
 export const handleUserChange = (data: unknown) => {
-  const parsedData = parseData(data, userMessageSchema)
+  const parsedData = parseData(data, userSchema)
 
   const user = useUserStore()
   user.data = parsedData
 }
 
-const getLocalId = () => {
+const getLocalToken = () => {
   return localStorage.getItem(idLSKey)
 }
 
-const sendChange = (data: userMessage) => {
+const sendNameChange = (name: string) => {
   sendMessage({
-    type: OPacketType.UserChange,
-    data,
+    type: OPacketType.UserNameChange,
+    data: {
+      name,
+    },
   })
 }
 
-export default { getLocalId, sendChange }
+export default { getLocalToken, sendNameChange }

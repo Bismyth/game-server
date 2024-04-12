@@ -8,21 +8,33 @@ import (
 func cachePublicGameState(gameId uuid.UUID) error {
 	gs := PublicGameState{}
 
-	players, err := db.GetGamePlayers(gameId)
+	players, err := db.PlayerTypeGetAll(gameId, playerType)
 	if err != nil {
 		return err
 	}
 
-	hb, err := db.GetGameProperty[string](gameId, "bid")
+	gs.TurnOrder = players
+
+	hb, err := GetProperty[string](gameId, d_bid)
 	if err != nil {
 		return err
 	}
 	gs.HighestBid = hb
-	turnIndex, err := db.GetGameProperty[int](gameId, "turn")
+
+	gameOver, err := GetProperty[bool](gameId, d_gameOver)
 	if err != nil {
 		return err
 	}
-	gs.PlayerTurn = players[turnIndex]
+	gs.GameOver = gameOver
+
+	if !gameOver {
+		cursor := db.GetCursor(gameId, playerType)
+		currentPLayer, err := cursor.Current()
+		if err != nil {
+			return err
+		}
+		gs.PlayerTurn = currentPLayer
+	}
 
 	playerDice := map[uuid.UUID]int{}
 
@@ -35,7 +47,13 @@ func cachePublicGameState(gameId uuid.UUID) error {
 	}
 	gs.DiceAmounts = playerDice
 
-	err = db.SetGameProperty(gameId, "cache", gs)
+	pr, err := GetProperty[RoundInfo](gameId, d_previousRound)
+	if err != nil {
+		return err
+	}
+	gs.PreviousRound = pr
+
+	err = db.SetGameCache(gameId, gs)
 	if err != nil {
 		return err
 	}
@@ -44,7 +62,7 @@ func cachePublicGameState(gameId uuid.UUID) error {
 }
 
 func getPublicGameState(gameId uuid.UUID) (*PublicGameState, error) {
-	gs, err := db.GetGameProperty[PublicGameState](gameId, "cache")
+	gs, err := db.GetGameCache[PublicGameState](gameId)
 	if err != nil {
 		return nil, err
 	}
@@ -53,6 +71,10 @@ func getPublicGameState(gameId uuid.UUID) (*PublicGameState, error) {
 }
 
 func getPrivateGameState(gameId uuid.UUID, playerId uuid.UUID) (*PrivateGameState, error) {
+	if !db.PlayerIsType(gameId, playerId, playerType) {
+		return nil, nil
+	}
+
 	hand, err := db.GetPlayerProperty[[]int](gameId, playerId, "hand")
 	if err != nil {
 		return nil, err

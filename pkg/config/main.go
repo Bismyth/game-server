@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 
+	"github.com/Bismyth/game-server/pkg/api"
 	"github.com/Bismyth/game-server/pkg/db"
 	"github.com/caarlos0/env/v10"
 	"github.com/go-playground/validator/v10"
@@ -14,6 +15,7 @@ type Config struct {
 		Production  bool   `env:"PRODUCTION"`
 		PublicDir   string `env:"PUBLIC_DIR"`
 		BindAddress string `env:"ADDRESS"`
+		JWTSecret   string `env:"JWT_SECRET"`
 	} `envPrefix:"APPLICATION_"`
 
 	Redis db.Config `validate:"required" envPrefix:"REDIS_"`
@@ -41,6 +43,8 @@ func New() *Config {
 		validationErrors := err.(validator.ValidationErrors)
 		log.Fatalf("unable to read from updated config: %v", validationErrors)
 	}
+
+	api.SetSigningKey(C.Application.JWTSecret)
 
 	db.SetConfig(C.Redis)
 

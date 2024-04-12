@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Bismyth/game-server/pkg/db"
 	"github.com/Bismyth/game-server/pkg/interfaces"
 	"github.com/google/uuid"
 )
@@ -63,8 +62,8 @@ func checkValidBid(oldBid string, newBid string) bool {
 	return true
 }
 
-func handleBid(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID, bid string) error {
-	oldBid, err := db.GetGameProperty[string](gameId, "bid")
+func handleBid(c interfaces.GameCommunication, gameId uuid.UUID, bid string) error {
+	oldBid, err := GetProperty[string](gameId, d_bid)
 	if err != nil {
 		return err
 	}
@@ -73,7 +72,12 @@ func handleBid(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.U
 		return fmt.Errorf("invalid bid")
 	}
 
-	err = db.SetGameProperty(gameId, "bid", bid)
+	err = SetProperty(gameId, d_bid, bid)
+	if err != nil {
+		return err
+	}
+
+	err = progressTurn(c, gameId)
 	if err != nil {
 		return err
 	}

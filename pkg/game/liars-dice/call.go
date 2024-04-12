@@ -9,7 +9,7 @@ import (
 )
 
 func getAllDice(gameId uuid.UUID) ([]int, error) {
-	hands, err := db.GetMultiPlayerProperty[[]int](gameId, "hand")
+	hands, err := db.GetMultiPlayerProperty[[]int](gameId, "hand", playerType)
 	if err != nil {
 		return nil, err
 	}
@@ -22,8 +22,9 @@ func getAllDice(gameId uuid.UUID) ([]int, error) {
 	return allDice, nil
 }
 
-func callRight(gameId uuid.UUID) (bool, error) {
-	currentBid, err := db.GetGameProperty[string](gameId, "bid")
+// returns true if bid was met, false if bid was a lie
+func evalBid(gameId uuid.UUID) (bool, error) {
+	currentBid, err := GetProperty[string](gameId, d_bid)
 	if err != nil {
 		return false, err
 	}
@@ -47,70 +48,86 @@ func callRight(gameId uuid.UUID) (bool, error) {
 	return trueAmount >= a, nil
 }
 
-func loseDice(gameId uuid.UUID, playerId uuid.UUID) error {
+func loseDiceAtCursor(gameId uuid.UUID, playerCursor *db.Cursor) (int, error) {
+
+	playerId, err := playerCursor.Current()
+	if err != nil {
+		return 0, err
+	}
+
 	amount, err := db.GetPlayerProperty[int](gameId, playerId, "dice")
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	newAmount := amount - 1
 
 	err = db.SetPlayerProperty(gameId, playerId, "dice", newAmount)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	if newAmount <= 0 {
-		// TODO: Make player out
-
-		// TODO: if only one player standing trigger game win
-	}
-
-	return nil
+	return newAmount, nil
 }
 
-func getPreviousPlayer(gameId uuid.UUID) (uuid.UUID, error) {
-	return uuid.Nil, nil
-}
-
-func handleCall(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error {
+func handleCall(c interfaces.GameCommunication, gameId uuid.UUID) error {
 	var err error
+	var pvInfo ParsedRoundInfo
 
-	cr, err := callRight(gameId)
+	bidRight, err := evalBid(gameId)
 	if err != nil {
 		return fmt.Errorf("could not determine call")
 	}
 
-	if cr {
-		err = loseDice(gameId, playerId)
-	} else {
-		oldPlayer, err := getPreviousPlayer(gameId)
-		if err != nil {
-			return err
-		}
-		err = loseDice(gameId, oldPlayer)
-	}
+	playerCursor := db.GetCursor(gameId, playerType)
+
+	cu, err := playerCursor.Current()
 	if err != nil {
 		return err
 	}
-	players, err := db.GetGamePlayers(gameId)
+	pvInfo.CallUser = cu
+
+	pv, err := playerCursor.PeekPrevious()
 	if err != nil {
 		return err
 	}
-	err = rollHands(gameId, players)
+	pvInfo.LastBid = pv
+
+	if !bidRight {
+		playerCursor.Previous()
+	}
+
+	lostUser, err := playerCursor.Current()
+	if err != nil {
+		return err
+	}
+	pvInfo.DiceLost = lostUser
+
+	a, err := loseDiceAtCursor(gameId, playerCursor)
 	if err != nil {
 		return err
 	}
 
-	for _, player := range players {
-		privateGs, err := getPrivateGameState(gameId, player)
+	if a <= 0 {
+		err := playerCursor.Remove()
 		if err != nil {
 			return err
 		}
-		c.SendPlayer(player, GameState{Private: privateGs})
+		end, err := checkEnd(gameId)
+		if err != nil {
+			return err
+		}
+		if end {
+			endGame(c, gameId, &pvInfo)
+			return nil
+		}
 	}
 
-	err = db.SetGameProperty(gameId, "bid", "")
+	if !bidRight && a > 0 {
+		playerCursor.Next()
+	}
+
+	err = newRound(c, gameId, &pvInfo)
 	if err != nil {
 		return err
 	}
