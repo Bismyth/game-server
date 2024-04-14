@@ -35,8 +35,13 @@ func isValidRole(r Role) bool {
 	return false
 }
 
+type RoleInput[T any] struct {
+	Self uuid.UUID
+}
+
 type RobberInput struct {
 	Target uuid.UUID `json:"target"`
+	Self   uuid.UUID `json:"self"`
 }
 
 type SeerInput struct {

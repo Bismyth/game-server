@@ -45,6 +45,11 @@ func (h *Handler) New(gameId uuid.UUID, options []byte) error {
 		return fmt.Errorf("invalid role set given")
 	}
 
+	err = SetProperty(gameId, d_roles, parsedOptions.Roles)
+	if err != nil {
+		return err
+	}
+
 	players, err := db.GetLobbyUserIds(gameId)
 	if err != nil {
 		return err

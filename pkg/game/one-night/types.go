@@ -24,8 +24,8 @@ type PublicGameState struct {
 }
 
 type PrivateGameState struct {
-	Role     Role   `json:"role"`
-	RoleInfo []byte `json:"roleInfo"`
+	Role     Role        `json:"role"`
+	RoleInfo interface{} `json:"roleInfo"`
 }
 
 type GameAction string
@@ -45,7 +45,14 @@ type Action struct {
 
 type DBProperty string
 
+const d_roles = "roles"
 const d_nightTime = "night"
+const d_werewolves = "werewolves"
+const d_masons = "masons"
+const d_robberInput = "robberInput"
+const d_robberResult = "robberResult"
+const d_seerInput = "seerInput"
+const d_seerResult = "seerResult"
 
 type DBPlayerProprety string
 
