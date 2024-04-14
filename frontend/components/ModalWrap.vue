@@ -31,7 +31,7 @@ const close = (e: Event) => {
       <footer class="modal-card-foot">
         <slot name="footer">
           <div class="buttons">
-            <button class="button" @click="close">Cancel</button>
+            <button class="button" @click="close">Close</button>
           </div>
         </slot>
       </footer>

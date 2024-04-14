@@ -11,6 +11,7 @@ const roundInfoSchema = z.object({
   callUser: z.string().uuid(),
   lastBid: z.string().uuid(),
   diceLost: z.string().uuid(),
+  leave: z.string().nullable(),
 })
 
 const publicStateSchema = z.object({
@@ -135,6 +136,10 @@ const handleState = (data: unknown) => {
       !result.data.public.gameOver
     if (newRound) {
       showCall.value = true
+    }
+
+    if (result.data.public.highestBid != '' && showCall.value) {
+      showCall.value = false
     }
 
     const [a, f] = splitBid(result.data.public.highestBid)

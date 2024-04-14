@@ -3,7 +3,7 @@ import ModalWrap from '@/components/ModalWrap.vue'
 
 defineProps<{
   show: boolean
-  lastPlayer: string
+  lastPlayer?: string
 }>()
 
 const emit = defineEmits<{

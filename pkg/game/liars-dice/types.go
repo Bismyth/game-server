@@ -33,12 +33,14 @@ type RoundInfo struct {
 	LastBid    uuid.UUID           `json:"lastBid"`
 	CallUser   uuid.UUID           `json:"callUser"`
 	DiceLost   uuid.UUID           `json:"diceLost"`
+	Leave      string              `json:"leave"`
 }
 
 type ParsedRoundInfo struct {
 	LastBid  uuid.UUID
 	CallUser uuid.UUID
 	DiceLost uuid.UUID
+	Leave    uuid.UUID
 }
 
 type PrivateGameState struct {
