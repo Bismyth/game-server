@@ -48,7 +48,7 @@ const calculatedAmount = (f: number): number => {
     return 0
   }
 
-  return allFaceValues.value[f] + allFaceValues.value[0]
+  return allFaceValues.value[f - 1] + allFaceValues.value[0]
 }
 
 const faceSelected = ref(0)
