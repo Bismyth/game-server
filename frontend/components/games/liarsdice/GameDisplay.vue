@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import ld from '@/game/liarsdice'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted } from 'vue'
 import IconButton from '@/components/IconButton.vue'
 import DiceHand from './DiceHand.vue'
 import DiceCube from './DiceCube.vue'
@@ -12,6 +12,7 @@ import CallModal from './CallModal.vue'
 import { useUserStore } from '@/stores/user'
 import EndGame from './EndGame.vue'
 import { useRouter } from 'vue-router'
+import RulesPage from './RulesPage.vue'
 
 const lobby = useLobbyStore()
 const user = useUserStore()
@@ -31,6 +32,10 @@ const outPlayers = computed(() => {
   }
   return ids
 })
+
+const isIn = (id: string) => {
+  return ld.gameData.publicState?.turnOrder.includes(id)
+}
 
 const handleBid = (bid: string) => {
   ld.bid(lobby.id, bid)
@@ -83,7 +88,14 @@ const handleLobbyBack = () => {
           />
           <IconButton icon="fa6-solid:arrow-left" label="Leave" @click="leave" v-else />
         </div>
-        <div class="title-box"><h1 class="title">Liars Dice</h1></div>
+        <div class="title-box">
+          <div class="is-flex">
+            <h1 class="title mr-3">Liars Dice</h1>
+            <div>
+              <RulesPage />
+            </div>
+          </div>
+        </div>
         <div class="outer">
           <IconButton
             icon="fa6-solid:clock-rotate-left"
@@ -128,12 +140,15 @@ const handleLobbyBack = () => {
           </div>
         </div>
         <div class="box is-5">
-          <div class="mb-4">
+          <div class="mb-4" v-if="isIn(user.data.id)">
             <h4 class="title is-4 mb-2">Hand</h4>
             <DiceHand
               :true-value="ld.gameData.privateState?.dice ?? []"
               :shuffle="ld.rollHand.value"
             />
+          </div>
+          <div v-else class="mb-4">
+            <span>You are now out</span>
           </div>
           <div>
             <h4 class="title is-4 mb-2">Highest Bid</h4>
@@ -145,6 +160,7 @@ const handleLobbyBack = () => {
           </div>
           <div v-if="ld.gameData.isTurn">
             <hr />
+            <h4 class="title is-5">Its your turn! Please input a move:</h4>
             <div class="is-flex">
               <BidForm @bid="handleBid" :current-bid="ld.gameData.publicState?.highestBid ?? ''" />
               <div>

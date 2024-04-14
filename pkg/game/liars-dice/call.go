@@ -103,6 +103,11 @@ func handleCall(c interfaces.GameCommunication, gameId uuid.UUID) error {
 	}
 	pvInfo.DiceLost = lostUser
 
+	pr, err := generatePreviousRound(gameId, &pvInfo)
+	if err != nil {
+		return err
+	}
+
 	a, err := loseDiceAtCursor(gameId, playerCursor)
 	if err != nil {
 		return err
@@ -118,16 +123,26 @@ func handleCall(c interfaces.GameCommunication, gameId uuid.UUID) error {
 			return err
 		}
 		if end {
-			endGame(c, gameId, &pvInfo)
+			endGame(c, gameId, pr)
 			return nil
 		}
 	}
 
 	if !bidRight && a > 0 {
-		playerCursor.Next()
+		_, err := playerCursor.Next()
+		if err != nil {
+			return err
+		}
 	}
 
-	err = newRound(c, gameId, &pvInfo)
+	if bidRight && a == 0 {
+		_, err = playerCursor.Previous()
+		if err != nil {
+			return err
+		}
+	}
+
+	err = newRound(c, gameId, pr)
 	if err != nil {
 		return err
 	}

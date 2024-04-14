@@ -12,6 +12,7 @@ import IconButton from '@/components/IconButton.vue'
 import { computed, ref } from 'vue'
 import GameOptionsInfo from '@/components/games/GameOptionsInfo.vue'
 import { useUserStore } from '@/stores/user'
+import RulesPage from '@/components/games/RulesPage.vue'
 
 const LINK_COPIED_TIMEOUT = 2 //seconds
 
@@ -71,8 +72,13 @@ const shareLink = () => {
           <div class="is-flex mb-5 is-flex-direction-column">
             <div class="is-flex mb-2">
               <div class="is-size-5">
-                <span class="has-text-weight-semibold">Game Type: </span>
-                {{ lobby.gameType === '' ? 'Not Selected' : gameTypeLabels[lobby.gameType] }}
+                <div class="mb-3">
+                  <span class="has-text-weight-semibold">Game Type: </span>
+                  {{ lobby.gameType === '' ? 'Not Selected' : gameTypeLabels[lobby.gameType] }}
+                </div>
+                <div v-if="lobby.gameType !== ''">
+                  <RulesPage :game-type="lobby.gameType" />
+                </div>
               </div>
             </div>
             <div v-if="lobby.gameType !== ''">

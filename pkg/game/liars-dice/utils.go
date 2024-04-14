@@ -32,16 +32,12 @@ func progressTurn(c interfaces.GameCommunication, gameId uuid.UUID) error {
 	return nil
 }
 
-func newRound(c interfaces.GameCommunication, gameId uuid.UUID, pvInfo *ParsedRoundInfo) error {
+func newRound(c interfaces.GameCommunication, gameId uuid.UUID, pr *RoundInfo) error {
 	players, err := db.PlayerTypeGetAll(gameId, playerType)
 	if err != nil {
 		return err
 	}
 
-	pr, err := generatePreviousRound(gameId, players, pvInfo)
-	if err != nil {
-		return err
-	}
 	err = SetProperty(gameId, d_previousRound, pr)
 	if err != nil {
 		return err
@@ -94,7 +90,7 @@ func rollHands(gameId uuid.UUID, players []uuid.UUID) error {
 	return nil
 }
 
-func generatePreviousRound(gameId uuid.UUID, players []uuid.UUID, pvInfo *ParsedRoundInfo) (*RoundInfo, error) {
+func generatePreviousRound(gameId uuid.UUID, pvInfo *ParsedRoundInfo) (*RoundInfo, error) {
 	r, err := GetProperty[RoundInfo](gameId, d_previousRound)
 	if err != nil {
 		return nil, err
@@ -103,6 +99,21 @@ func generatePreviousRound(gameId uuid.UUID, players []uuid.UUID, pvInfo *Parsed
 	var roundInfo RoundInfo
 
 	roundInfo.Round = r.Round + 1
+
+	if pvInfo.Leave != uuid.Nil {
+		name, err := db.GetUserName(pvInfo.Leave)
+		if err != nil {
+			return nil, err
+		}
+
+		roundInfo.Leave = name
+		return &roundInfo, nil
+	}
+
+	players, err := db.PlayerTypeGetAll(gameId, playerType)
+	if err != nil {
+		return nil, err
+	}
 
 	hb, err := GetProperty[string](gameId, d_bid)
 	if err != nil {
@@ -129,20 +140,12 @@ func generatePreviousRound(gameId uuid.UUID, players []uuid.UUID, pvInfo *Parsed
 	return &roundInfo, nil
 }
 
-func endGame(c interfaces.GameCommunication, gameId uuid.UUID, pvInfo *ParsedRoundInfo) error {
+func endGame(c interfaces.GameCommunication, gameId uuid.UUID, pr *RoundInfo) error {
 	err := SetProperty(gameId, d_gameOver, true)
 	if err != nil {
 		return err
 	}
 
-	players, err := db.PlayerTypeGetAll(gameId, playerType)
-	if err != nil {
-		return err
-	}
-	pr, err := generatePreviousRound(gameId, players, pvInfo)
-	if err != nil {
-		return err
-	}
 	err = SetProperty(gameId, d_previousRound, pr)
 	if err != nil {
 		return err

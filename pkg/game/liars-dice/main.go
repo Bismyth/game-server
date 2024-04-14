@@ -3,6 +3,7 @@ package liarsdice
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand/v2"
 	"time"
 
 	"github.com/Bismyth/game-server/pkg/db"
@@ -35,6 +36,23 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) error {
 		return fmt.Errorf("failed to parse options")
 	}
 
+	players, err := db.GetLobbyUserIds(gameId)
+	if err != nil {
+		return err
+	}
+
+	if options.StartingDice <= 0 {
+		return fmt.Errorf("must start game with more than 0 dice")
+	}
+
+	if options.StartingDice > 99 {
+		return fmt.Errorf("too many dice")
+	}
+
+	if len(players) < 2 {
+		return fmt.Errorf("not enough players")
+	}
+
 	if err := SetProperty(gameId, d_bid, ""); err != nil {
 		return err
 	}
@@ -43,10 +61,10 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) error {
 		return err
 	}
 
-	players, err := db.GetLobbyUserIds(gameId)
-	if err != nil {
-		return err
-	}
+	// Randomise turn order
+	rand.Shuffle(len(players), func(i, j int) {
+		players[i], players[j] = players[j], players[i]
+	})
 
 	for _, player := range players {
 		if err := db.SetPlayerProperty(gameId, player, "dice", options.StartingDice); err != nil {
@@ -163,25 +181,23 @@ func (h *Handler) HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, 
 		return err
 	}
 
+	pr, err := generatePreviousRound(gameId, &ParsedRoundInfo{
+		Leave: playerId,
+	})
+	if err != nil {
+		return err
+	}
+
 	if end {
-		err = endGame(c, gameId, nil)
+		err = endGame(c, gameId, pr)
 		if err != nil {
 			return err
 		}
 	} else {
-		err = cachePublicGameState(gameId)
+		err = newRound(c, gameId, pr)
 		if err != nil {
 			return err
 		}
-
-		pGs, err := getPublicGameState(gameId)
-		if err != nil {
-			return err
-		}
-
-		c.SendGlobal(GameState{
-			Public: pGs,
-		})
 	}
 
 	return nil

@@ -2,6 +2,7 @@
 import DiceCube from './DiceCube.vue'
 import { Icon } from '@iconify/vue'
 import { computed, onMounted, ref, watch } from 'vue'
+import DiceHandTotals from './DiceHandTotals.vue'
 
 const props = defineProps<{
   trueValue: number[]
@@ -79,18 +80,7 @@ watch(
   <div v-show="tabIndex === 1">
     <div class="dice-hand">
       <div v-if="shuffle">Rolling...</div>
-      <div v-else class="is-flex is-flex-direction-column">
-        <div class="icon-text mb-1">
-          <span class="icon"><Icon icon="bi:dice-1-fill" height="100%" /></span>
-          <span>- {{ rawValues[0] }}</span>
-        </div>
-        <div class="icon-text mb-1" v-for="(a, f) in rawValues.slice(1)" :key="f">
-          <span class="icon" :class="{ 'has-text-success': f + 2 === highlight }"
-            ><Icon :icon="`bi:dice-${f + 2}-fill`" height="100%"
-          /></span>
-          <span>- {{ a }} ({{ a + rawValues[0] }})</span>
-        </div>
-      </div>
+      <DiceHandTotals :highlight="highlight" :values="rawValues" />
     </div>
   </div>
 </template>

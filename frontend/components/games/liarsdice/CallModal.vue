@@ -2,11 +2,11 @@
 import ModalWrap from '@/components/ModalWrap.vue'
 import type { RoundInfo } from '@/game/liarsdice'
 import { useLobbyStore } from '@/stores/lobby'
-import DiceHand from './DiceHand.vue'
 import { computed, ref, watch } from 'vue'
 import DiceHandValues from './DiceHandValues.vue'
 import DiceHandTabs from './DiceHandTabs.vue'
 import BidRender from './BidRender.vue'
+import DiceHandTotals from './DiceHandTotals.vue'
 
 const props = defineProps<{
   show: boolean
@@ -15,6 +15,10 @@ const props = defineProps<{
 
 const trueBidAmount = computed(() => {
   return props.data?.highestBid.split(',').map((v) => parseInt(v))[1] ?? 0
+})
+
+const isLeaveRound = computed(() => {
+  return !!props.data?.leave
 })
 
 const lobby = useLobbyStore()
@@ -29,14 +33,22 @@ const handleClose = () => {
   emit('close')
 }
 
+const allFaceValues = computed(() => {
+  const faces = [1, 2, 3, 4, 5, 6]
+  return faces.map(
+    (i) =>
+      Object.values(props.data?.hands ?? {})
+        .flat()
+        .filter((v) => v === i).length,
+  )
+})
+
 const calculatedAmount = (f: number): number => {
   if (!props.data) {
     return 0
   }
 
-  return Object.values(props.data?.hands ?? {})
-    .flat()
-    .reduce((a, v) => (v === f || v === 1 ? a + 1 : a), 0)
+  return allFaceValues.value[f] + allFaceValues.value[0]
 }
 
 const faceSelected = ref(0)
@@ -61,7 +73,7 @@ const handleChangeTab = (n: number) => {
 <template>
   <ModalWrap title="Call Result" :shown="show" @close="handleClose">
     <template #body>
-      <div v-if="data">
+      <div v-if="data && !isLeaveRound">
         <div>
           <p>
             {{ getName(data.callUser) }} called out {{ getName(data.lastBid) }} for the bid
@@ -89,6 +101,10 @@ const handleChangeTab = (n: number) => {
           <div>There were: <BidRender :bid="[calculatedAmount(faceSelected), faceSelected]" /></div>
           <DiceHandTabs @change-tab="handleChangeTab" />
           <div :class="{ 'value-icon': tabIndex === 1 }">
+            <div v-if="tabIndex === 1">
+              <h6 class="title is-6 mb-2">Total</h6>
+              <DiceHandTotals :values="allFaceValues" :highlight="faceSelected" />
+            </div>
             <div v-for="(h, id) in data.hands" :key="id" class="mb-2">
               <h6 class="title is-6 mb-2">{{ getName(id) }}</h6>
               <DiceHandValues :true-value="h" :highlight="faceSelected" :tab-index="tabIndex" />
@@ -96,6 +112,10 @@ const handleChangeTab = (n: number) => {
           </div>
         </div>
       </div>
+      <div v-else-if="data && isLeaveRound">
+        <span>{{ data.leave }} left.</span>
+      </div>
+
       <div v-else>Loading...</div>
     </template>
     <template #footer>
