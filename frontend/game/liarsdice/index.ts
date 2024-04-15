@@ -1,6 +1,5 @@
 /* eslint-disable prefer-const */
 import api from '@/api'
-import { useUserStore } from '@/stores/user'
 import { reactive, ref } from 'vue'
 import { z } from 'zod'
 
@@ -38,18 +37,14 @@ const stateSchema = z.object({
 
 type privateStateT = z.infer<typeof privateStateScehma>
 
-let idStore = ''
-
-const create = (id: string) => {
-  idStore = id
-
+const create = () => {
   api.game.handleAction.fn = handleAction
   api.game.handleEvent.fn = handleEvent
   api.game.handleState.fn = handleState
 
   resetValues()
 
-  ready(idStore)
+  ready()
 }
 
 const resetValues = () => {
@@ -85,23 +80,23 @@ const rollHandTime = 3 * 1000 //5 seconds
 
 let triggerRollHand = false
 
-const ready = (lobbyId: string) => {
-  api.game.ready(lobbyId)
+const ready = () => {
+  api.game.ready()
 }
 
-const takeAction = (lobbyId: string, option: string, data: any) => {
+const takeAction = (option: string, data?: any) => {
   if (!gameData.isTurn) {
     return
   }
-  api.game.action(lobbyId, option, data)
+  api.game.action(option, data)
 }
 
-const bid = (lobbyId: string, bid: string) => {
-  takeAction(lobbyId, 'bid', { bid })
+const bid = (bid: string) => {
+  takeAction('bid', { bid })
 }
 
-const call = (lobbyId: string) => {
-  takeAction(lobbyId, 'call', undefined)
+const call = () => {
+  takeAction('call')
 }
 
 const closeCallScreen = () => {
@@ -155,12 +150,6 @@ const handleState = (data: unknown) => {
     }
     gameData.privateState = result.data.private
   }
-
-  const user = useUserStore()
-
-  if (result.data.public) {
-    gameData.isTurn = result.data.public.playerTurn === user.data.id
-  }
 }
 
 const splitBid = (bid: string): [number, number] => {
@@ -180,6 +169,7 @@ const handleAction = (data: unknown) => {
     return
   }
   gameData.currentOptions = result.data
+  gameData.isTurn = true
 }
 const handleEvent = (data: unknown) => {
   console.log(data)

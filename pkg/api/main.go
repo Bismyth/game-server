@@ -6,6 +6,7 @@ import (
 	"log"
 	"reflect"
 
+	"github.com/Bismyth/game-server/pkg/db"
 	"github.com/google/uuid"
 	"github.com/mitchellh/mapstructure"
 )
@@ -27,18 +28,20 @@ type Packet[T interface{}] struct {
 }
 
 type IRawMessage struct {
-	Message []byte
-	UserId  uuid.UUID
+	Message  []byte
+	SessonId uuid.UUID
 }
 
 type Client interface {
 	Send([]uuid.UUID, []byte)
+	Close(uuid.UUID)
 }
 
 type HandlerInput struct {
-	C      Client
-	UserId uuid.UUID
-	Packet Packet[json.RawMessage]
+	C         Client
+	Session   *db.Session
+	SessionId uuid.UUID
+	Packet    Packet[json.RawMessage]
 }
 
 func mp[T any](oPacketType OPacketType, data T) Packet[T] {
@@ -80,23 +83,30 @@ func HandleIncomingMessage(c Client, m *IRawMessage) {
 
 	returnErr = json.Unmarshal(m.Message, &iPacket)
 	if returnErr != nil {
-		SendErr(c, m.UserId, returnErr)
+		SendErr(c, m.SessonId, returnErr)
 		return
 	}
 
 	fn, ok := router[IPacketType(iPacket.Type)]
 	if !ok {
-		SendErr(c, m.UserId, fmt.Errorf("unrecognized packet type"))
+		SendErr(c, m.SessonId, fmt.Errorf("unrecognized packet type"))
+		return
+	}
+
+	s, err := db.GetSessionDetails(m.SessonId)
+	if err != nil {
+		SendErr(c, m.SessonId, err)
 		return
 	}
 
 	returnErr = fn(HandlerInput{
-		C:      c,
-		UserId: m.UserId,
-		Packet: iPacket,
+		C:         c,
+		Session:   s,
+		SessionId: m.SessonId,
+		Packet:    iPacket,
 	})
 	if returnErr != nil {
-		SendErr(c, m.UserId, returnErr)
+		SendErr(c, m.SessonId, returnErr)
 	}
 }
 

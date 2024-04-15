@@ -8,17 +8,17 @@ const props = defineProps<{
   id?: string
 }>()
 
-const createLobby = () => {
+const join = () => {
   if (name.value !== '') {
     localStorage.setItem('nickname', name.value)
   }
 
-  const lobbyName = name.value || previousName.value
+  const roomName = name.value || previousName.value
 
   if (props.id) {
-    api.lobby.join(props.id, lobbyName)
+    api.http.joinRoom(props.id, roomName)
   } else {
-    api.lobby.create(lobbyName)
+    api.http.createRoom(roomName)
   }
 }
 
@@ -60,7 +60,7 @@ onMounted(() => {
           <hr />
           <div class="field is-grouped is-grouped-centered">
             <div class="control">
-              <button class="button is-primary" @click.prevent="createLobby">
+              <button class="button is-primary" @click.prevent="join">
                 {{ id ? 'Join Lobby' : 'Create Lobby' }}
               </button>
             </div>

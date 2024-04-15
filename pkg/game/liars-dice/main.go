@@ -36,7 +36,7 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) error {
 		return fmt.Errorf("failed to parse options")
 	}
 
-	players, err := db.GetLobbyUserIds(gameId)
+	players, err := db.GetRoomUserOrder(gameId)
 	if err != nil {
 		return err
 	}
@@ -181,8 +181,13 @@ func (h *Handler) HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, 
 		return err
 	}
 
+	playerName, err := db.GetRoomUserName(gameId, playerId)
+	if err != nil {
+		return err
+	}
+
 	pr, err := generatePreviousRound(gameId, &ParsedRoundInfo{
-		Leave: playerId,
+		Leave: playerName,
 	})
 	if err != nil {
 		return err

@@ -14,6 +14,7 @@ export default defineConfig({
     port: 8080,
     proxy: {
       '/ws': 'ws://localhost:8081/',
+      '/api': 'http://localhost:8081/',
     },
   },
   resolve: {

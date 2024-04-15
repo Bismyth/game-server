@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { z } from 'zod'
 import FormWrap from '@/components/FormWrap.vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { ref } from 'vue'
-import { useLobbyStore } from '@/stores/lobby'
+import { useRoomStore } from '@/stores/room'
 import { optionsSchema, type Options } from '@/game/liarsdice/options'
 
 const emit = defineEmits<{
@@ -20,10 +19,10 @@ const submitForm = () => {
   formWrap.value?.submit()
 }
 
-const lobby = useLobbyStore()
+const room = useRoomStore()
 
 const init = () => {
-  formWrap.value?.init(lobby.options)
+  formWrap.value?.init(room.options)
 }
 
 defineExpose({

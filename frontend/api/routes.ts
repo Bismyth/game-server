@@ -1,18 +1,13 @@
-import { handleUserChange, handleUserInit } from './user'
 import error from './error'
 import { z } from 'zod'
 import { IPacketType } from './packetTypes'
-import { handleLobbyChange, handleLobbyUserChange } from './lobby'
+import { handleRoomChange, handleRoomUserChange } from './room'
 import { useErrorStore } from '@/stores/error'
 import { handleGameAction, handleGameEvent, handleGameState } from './game'
-import { notImplemented } from './main'
 
 const routeMap: Record<IPacketType, (data: unknown) => void> = {
-  [IPacketType.UserInit]: handleUserInit,
-  [IPacketType.UserChange]: handleUserChange,
-  [IPacketType.Chat]: notImplemented,
-  [IPacketType.LobbyChange]: handleLobbyChange,
-  [IPacketType.LobbyUserChange]: handleLobbyUserChange,
+  [IPacketType.RoomInfo]: handleRoomChange,
+  [IPacketType.RoomUserChange]: handleRoomUserChange,
   [IPacketType.Error]: error.handle,
   [IPacketType.GameState]: handleGameState,
   [IPacketType.GameAction]: handleGameAction,

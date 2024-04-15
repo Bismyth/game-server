@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ModalWrap from '@/components/ModalWrap.vue'
 import type { RoundInfo } from '@/game/liarsdice'
-import { useLobbyStore } from '@/stores/lobby'
+import { useRoomStore } from '@/stores/room'
 import { computed, ref, watch } from 'vue'
 import DiceHandValues from './DiceHandValues.vue'
 import DiceHandTabs from './DiceHandTabs.vue'
@@ -21,9 +21,9 @@ const isLeaveRound = computed(() => {
   return !!props.data?.leave
 })
 
-const lobby = useLobbyStore()
+const lobby = useRoomStore()
 
-const getName = (id: string) => lobby.users[id]?.name ?? ''
+const getName = (id: string) => lobby.users[id] ?? ''
 
 const emit = defineEmits<{
   close: []

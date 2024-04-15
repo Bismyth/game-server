@@ -6,26 +6,24 @@ import DiceHand from './DiceHand.vue'
 import DiceCube from './DiceCube.vue'
 import BidForm from './BidForm.vue'
 import ErrorStore from '@/components/ErrorStore.vue'
-import { useLobbyStore } from '@/stores/lobby'
+import { useRoomStore } from '@/stores/room'
 import { Icon } from '@iconify/vue'
 import CallModal from './CallModal.vue'
-import { useUserStore } from '@/stores/user'
 import EndGame from './EndGame.vue'
 import { useRouter } from 'vue-router'
 import RulesPage from './RulesPage.vue'
 
-const lobby = useLobbyStore()
-const user = useUserStore()
+const room = useRoomStore()
 
 const router = useRouter()
 
 onMounted(async () => {
-  ld.create(lobby.id)
+  ld.create()
 })
 
 const outPlayers = computed(() => {
   const ids: string[] = []
-  for (const k in lobby.users) {
+  for (const k in room.users) {
     if (!ld.gameData.publicState?.turnOrder.includes(k)) {
       ids.push(k)
     }
@@ -38,15 +36,15 @@ const isIn = (id: string) => {
 }
 
 const handleBid = (bid: string) => {
-  ld.bid(lobby.id, bid)
+  ld.bid(bid)
 }
 
 const handleCall = () => {
-  ld.call(lobby.id)
+  ld.call()
 }
 
 const leave = () => {
-  lobby.leave()
+  room.leave()
 }
 
 const totalDice = computed(() => {
@@ -122,8 +120,8 @@ const handleLobbyBack = () => {
                       v-if="id == ld.gameData.publicState?.playerTurn"
                     />
                   </span>
-                  <span :class="{ 'has-text-weight-bold': id === user.data.id }">
-                    {{ lobby.users[id]?.name }}
+                  <span :class="{ 'has-text-weight-bold': id === room.userId }">
+                    {{ room.users.names[id] }}
                   </span>
                 </span>
               </div>
@@ -135,12 +133,12 @@ const handleLobbyBack = () => {
           <h4 class="title is-5">Out</h4>
           <div>
             <div v-for="id in outPlayers" :key="id">
-              <span> {{ lobby.users[id].name }} </span>
+              <span> {{ room.users.names[id] }} </span>
             </div>
           </div>
         </div>
         <div class="box is-5">
-          <div class="mb-4" v-if="isIn(user.data.id)">
+          <div class="mb-4" v-if="isIn(room.userId)">
             <h4 class="title is-4 mb-2">Hand</h4>
             <DiceHand
               :true-value="ld.gameData.privateState?.dice ?? []"
@@ -180,7 +178,7 @@ const handleLobbyBack = () => {
   />
   <EndGame
     :show="ld.showGameOver.value"
-    :last-player="lobby.users[ld.gameData.publicState?.turnOrder[0] ?? '']?.name"
+    :last-player="room.users.names[ld.gameData.publicState?.turnOrder[0] ?? '']"
     @close="handleGameOverClose"
     @back="handleLobbyBack"
   />

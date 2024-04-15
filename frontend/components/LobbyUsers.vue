@@ -1,30 +1,22 @@
 <script setup lang="ts">
-import type { LobbyUsers } from '@/api/lobby'
+import type { RoomUsers } from '@/api/room'
 import { Icon } from '@iconify/vue'
 
 defineProps<{
-  users: LobbyUsers
+  users: RoomUsers
+  host: string
 }>()
-
-// const players = {
-//   id:
-// }
 </script>
 
 <template>
   <div>
-    <div class="player-box" v-for="(user, id) in users" :key="id">
+    <div class="player-box" v-for="id in users.order" :key="id">
       <span class="icon-text">
         <span class="icon">
-          <Icon icon="fa6-solid:crown" v-if="user.host" />
+          <Icon icon="fa6-solid:crown" v-if="host === id" />
         </span>
-        <span>{{ user.name }}</span>
+        <span>{{ users.names[id] }}</span>
       </span>
     </div>
   </div>
 </template>
-
-<style>
-.player-box {
-}
-</style>

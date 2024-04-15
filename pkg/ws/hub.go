@@ -45,15 +45,24 @@ func (h *Hub) Send(ids []uuid.UUID, data []byte) {
 	}
 }
 
+func (h *Hub) Close(id uuid.UUID) {
+	h.unregister <- h.clientIds[id]
+}
+
 func (h *Hub) Run() {
 	for {
 		select {
 		case client := <-h.register:
 			h.clients[client] = true
+			h.clientIds[client.sessionId] = client
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
+				err := api.HandleSessionClose(client.sessionId)
+				if err != nil {
+					log.Printf("failed to close session: %v", err)
+				}
 				delete(h.clients, client)
-				delete(h.clientIds, client.id)
+				delete(h.clientIds, client.sessionId)
 				close(client.send)
 			}
 		case message := <-h.broadcast:

@@ -21,16 +21,21 @@ func New(c *config.Config, wshub *ws.Hub) *Server {
 }
 
 func (S *Server) Run() {
+
+	mux := http.NewServeMux()
+
 	if S.Config.Application.Production {
-		http.Handle("/", ServeStaticSPA(S.Config.Application.PublicDir))
+		mux.Handle("/", ServeStaticSPA(S.Config.Application.PublicDir))
 	}
 
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		ws.ServeWs(S.WSHub, w, r)
 	})
 
+	S.RegisterAPI(mux)
+
 	log.Printf("Serving on: %s\n", S.Config.Application.BindAddress)
-	err := http.ListenAndServe(S.Config.Application.BindAddress, nil)
+	err := http.ListenAndServe(S.Config.Application.BindAddress, mux)
 	if err != nil {
 		log.Fatal(err)
 	}

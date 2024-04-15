@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { lobbyDataSchema } from '@/api/lobby'
+import { roomDataSchema } from '@/api/room'
 import { gameTypeLabels } from '@/game'
-import { useLobbyStore } from '@/stores/lobby'
+import { useRoomStore } from '@/stores/room'
 import FormWrap from './FormWrap.vue'
 import ModalWrap from './ModalWrap.vue'
 import type { z } from 'zod'
@@ -10,12 +10,12 @@ import { ref, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import IconButton from './IconButton.vue'
 
-const lobby = useLobbyStore()
+const room = useRoomStore()
 
-type FormResult = z.infer<typeof lobbyDataSchema>
+type FormResult = z.infer<typeof roomDataSchema>
 
 const submit = (data: FormResult) => {
-  api.lobby.change(data)
+  api.room.change(data)
   showOptions.value = false
 }
 
@@ -28,13 +28,12 @@ const openModal = () => {
   showOptions.value = true
 }
 
-const formWrap = ref<ComponentExposed<typeof FormWrap<typeof lobbyDataSchema>> | null>(null)
+const formWrap = ref<ComponentExposed<typeof FormWrap<typeof roomDataSchema>> | null>(null)
 
 watch(showOptions, (newValue) => {
   if (newValue) {
     formWrap.value?.init({
-      id: lobby.id,
-      gameType: lobby.gameType,
+      gameType: room.gameType,
     })
   }
 })
@@ -44,7 +43,7 @@ watch(showOptions, (newValue) => {
   <IconButton @click="openModal" icon="fa6-solid:pencil" label="Edit" />
   <ModalWrap :shown="showOptions" title="Lobby Options" @close="onClose">
     <template #body>
-      <FormWrap :schema="lobbyDataSchema" @submit="submit" ref="formWrap">
+      <FormWrap :schema="roomDataSchema" @submit="submit" ref="formWrap">
         <template #default="context">
           <div class="field">
             <label class="label">Game Type</label>

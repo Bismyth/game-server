@@ -73,7 +73,9 @@ type Client struct {
 	// Buffered channel of outbound messages.
 	send chan []byte
 
-	id uuid.UUID
+	sessionId uuid.UUID
+
+	verified bool
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -81,6 +83,7 @@ type Client struct {
 // The application runs readPump in a per-connection goroutine. The application
 // ensures that there is at most one reader on a connection by executing all
 // reads from this goroutine.
+
 func (c *Client) readPump() {
 	defer func() {
 		c.hub.unregister <- c
@@ -92,31 +95,37 @@ func (c *Client) readPump() {
 	for {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
 				log.Printf("error: %v", err)
 			}
 			break
 		}
 
-		if c.id == uuid.Nil {
-			id, err := api.VerifyToken(string(message))
+		if !c.verified {
+			claims, err := api.VerifyRoomToken(string(message))
 			if err != nil {
 				errorPacket := api.CreateErrorPacket(fmt.Errorf("invalid initilization packet received"))
 				c.conn.WriteMessage(websocket.TextMessage, api.MarshalPacket(&errorPacket))
 				c.hub.unregister <- c
 				break
 			}
+			err = api.HandleSessionInit(c.hub, claims, c.sessionId)
+			if err != nil {
+				errorPacket := api.CreateErrorPacket(fmt.Errorf("failed to initialize connection"))
+				c.conn.WriteMessage(websocket.TextMessage, api.MarshalPacket(&errorPacket))
+				c.hub.unregister <- c
+				break
+			}
+			c.verified = true
 
-			c.id = api.SetUserId(id)
 			// TODO: Check for duplicate connection
-			c.send <- api.UserInitPacket(c.id)
-			c.hub.clientIds[c.id] = c
+			// c.send <- api.UserInitPacket(c.id)
 			continue
 		}
 
 		iPacket := api.IRawMessage{
-			Message: message,
-			UserId:  c.id,
+			Message:  message,
+			SessonId: c.sessionId,
 		}
 
 		c.hub.broadcast <- &iPacket
@@ -165,7 +174,13 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
+	id, err := uuid.NewV7()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256), sessionId: id}
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in

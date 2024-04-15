@@ -100,13 +100,8 @@ func generatePreviousRound(gameId uuid.UUID, pvInfo *ParsedRoundInfo) (*RoundInf
 
 	roundInfo.Round = r.Round + 1
 
-	if pvInfo.Leave != uuid.Nil {
-		name, err := db.GetUserName(pvInfo.Leave)
-		if err != nil {
-			return nil, err
-		}
-
-		roundInfo.Leave = name
+	if pvInfo.Leave != "" {
+		roundInfo.Leave = pvInfo.Leave
 		return &roundInfo, nil
 	}
 

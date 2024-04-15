@@ -14,16 +14,16 @@ func CreateErrorPacket(err error) Packet[string] {
 	return mp(ErrorPacketType, err.Error())
 }
 
-func SendErr(c Client, userId uuid.UUID, err error) {
+func SendErr(c Client, sessionId uuid.UUID, err error) {
 	errorMessage := CreateErrorPacket(err)
 
-	Send(c, userId, &errorMessage)
+	Send(c, sessionId, &errorMessage)
 }
 
 const pt_ErrorGame = "server_error_game"
 
-func SendGameErr(c Client, userId uuid.UUID, err error) {
+func SendGameErr(c Client, sessionId uuid.UUID, err error) {
 	packet := mp(pt_ErrorGame, err.Error())
 
-	Send(c, userId, &packet)
+	Send(c, sessionId, &packet)
 }

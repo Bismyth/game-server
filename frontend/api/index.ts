@@ -1,15 +1,15 @@
 import { setSendMessage, validateUUID, isNilUUID } from './main'
 import { handleIncomingMessage } from './routes'
-import user from './user'
-import lobby from './lobby'
+import room from './room'
 import game from './game'
+import http from './http'
 
 export default {
   handleIncomingMessage,
   setSendMessage,
-  user,
-  lobby,
+  room,
   game,
+  http,
   validateUUID,
   isNilUUID,
 }
