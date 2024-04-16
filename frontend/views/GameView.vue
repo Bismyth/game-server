@@ -2,18 +2,18 @@
 import GameError from '@/components/games/GameError.vue'
 import GameLoading from '@/components/games/GameLoading.vue'
 import { useRoomStore } from '@/stores/room'
-import { defineAsyncComponent } from 'vue'
+import { defineAsyncComponent, onMounted } from 'vue'
 
 const room = useRoomStore()
 
 const GameRender = defineAsyncComponent({
   // the loader function
   loader: () => {
-    if (room.gameType === '') {
+    if (room.data.gameType === '') {
       throw Error('no game type set')
     }
 
-    return import(`../components/games/${room.gameType}/GameDisplay.vue`)
+    return import(`../components/games/${room.data.gameType}/GameDisplay.vue`)
   },
 
   // A component to use while the async component is loading
@@ -26,6 +26,10 @@ const GameRender = defineAsyncComponent({
   // The error component will be displayed if a timeout is
   // provided and exceeded. Default: Infinity.
   timeout: 3000,
+})
+
+onMounted(() => {
+  room.setupConnection()
 })
 </script>
 

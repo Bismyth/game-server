@@ -33,7 +33,7 @@ const formWrap = ref<ComponentExposed<typeof FormWrap<typeof roomDataSchema>> | 
 watch(showOptions, (newValue) => {
   if (newValue) {
     formWrap.value?.init({
-      gameType: room.gameType,
+      gameType: room.data.gameType,
     })
   }
 })

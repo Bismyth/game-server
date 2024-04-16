@@ -6,6 +6,7 @@ export enum IPacketType {
   GameState = 'server_game_state',
   GameAction = 'server_game_action',
   GameError = 'server_error_game',
+  RoomKick = 'server_room_kick',
 }
 
 export enum OPacketType {
@@ -13,6 +14,7 @@ export enum OPacketType {
   RoomUsers = 'client_room_users',
   RoomChange = 'client_room_change',
   RoomOptions = 'client_room_options',
+  RoomKick = 'client_room_kick',
   UserNameChange = 'client_user_name_change',
   GameAction = 'client_game_action',
   GameStart = 'client_game_start',

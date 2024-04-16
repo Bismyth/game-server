@@ -8,7 +8,7 @@ import IconButton from '../IconButton.vue'
 
 const room = useRoomStore()
 
-const getGameOptions = (gameType: typeof room.gameType) =>
+const getGameOptions = (gameType: typeof room.data.gameType) =>
   defineAsyncComponent({
     // the loader function
     loader: () => {
@@ -17,10 +17,10 @@ const getGameOptions = (gameType: typeof room.gameType) =>
     timeout: 3000,
   })
 
-let GameOptions = getGameOptions(room.gameType)
+let GameOptions = getGameOptions(room.data.gameType)
 
 watch(
-  () => room.gameType,
+  () => room.data.gameType,
   (nv) => {
     GameOptions = getGameOptions(nv)
   },
@@ -47,11 +47,11 @@ const onOpen = () => {
 </script>
 
 <template>
-  <div v-if="room.gameType">
+  <div v-if="room.data.gameType">
     <IconButton @click="onOpen" icon="fa6-solid:screwdriver-wrench" label="Options" />
     <ModalWrap
       :shown="showGameOptions"
-      :title="`${gameTypeLabels[room.gameType]} Options`"
+      :title="`${gameTypeLabels[room.data.gameType]} Options`"
       @close="onClose"
     >
       <template #body>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { RoomUsers } from '@/api/room'
 import { Icon } from '@iconify/vue'
+import RoomName from './RoomName.vue'
 
 defineProps<{
   users: RoomUsers
@@ -15,7 +16,7 @@ defineProps<{
         <span class="icon">
           <Icon icon="fa6-solid:crown" v-if="host === id" />
         </span>
-        <span>{{ users.names[id] }}</span>
+        <RoomName :id="id" />
       </span>
     </div>
   </div>

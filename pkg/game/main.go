@@ -17,6 +17,7 @@ type GameHandler interface {
 	New(gameId uuid.UUID, options []byte) error
 	DefaultOptions() interface{}
 	HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error
+	Cleanup(gameId uuid.UUID) error
 }
 
 var gameHandlers map[string]GameHandler = map[string]GameHandler{

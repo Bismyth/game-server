@@ -27,6 +27,8 @@ const name = ref('')
 const previousName = ref('')
 
 onMounted(() => {
+  api.http.validateTokens()
+
   const nick = localStorage.getItem('nickname')
   if (nick) {
     previousName.value = nick

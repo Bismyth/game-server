@@ -209,12 +209,14 @@ func handleLeave(c Client, roomId uuid.UUID, userId uuid.UUID) error {
 		return err
 	}
 
+	sendRoomInfo(c, roomId)
 	sendRoomUsers(c, roomId)
 
 	return nil
 }
 
 const pt_IRoomKick = "client_room_kick"
+const pt_ORoomKick = "server_room_kick"
 
 func roomKick(i HandlerInput) error {
 	err := makeChangesAllowed(i.Session.RoomId, i.Session.UserId)
@@ -231,6 +233,10 @@ func roomKick(i HandlerInput) error {
 	if err != nil {
 		return err
 	}
+
+	packet := mp(pt_ORoomKick, "")
+	Send(i.C, session, &packet)
+
 	i.C.Close(session)
 
 	err = handleLeave(i.C, i.Session.RoomId, *id)

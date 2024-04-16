@@ -4,7 +4,7 @@ import { defineAsyncComponent, watch } from 'vue'
 
 const room = useRoomStore()
 
-const getOptionsInfo = (gameType: typeof room.gameType) =>
+const getOptionsInfo = (gameType: typeof room.data.gameType) =>
   defineAsyncComponent({
     // the loader function
     loader: () => {
@@ -13,10 +13,10 @@ const getOptionsInfo = (gameType: typeof room.gameType) =>
     timeout: 3000,
   })
 
-let OptionsInfo = getOptionsInfo(room.gameType)
+let OptionsInfo = getOptionsInfo(room.data.gameType)
 
 watch(
-  () => room.gameType,
+  () => room.data.gameType,
   (nv) => {
     OptionsInfo = getOptionsInfo(nv)
   },
@@ -24,7 +24,7 @@ watch(
 </script>
 
 <template>
-  <div v-if="room.gameType">
-    <OptionsInfo :data="room.options" />
+  <div v-if="room.data.gameType">
+    <OptionsInfo :data="room.data.options" />
   </div>
 </template>

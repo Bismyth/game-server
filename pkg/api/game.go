@@ -54,8 +54,13 @@ func (g *gc) SendPlayer(playerId uuid.UUID, data any) {
 }
 
 func (g *gc) ActionPrompt(playerId uuid.UUID, data any) {
+	session, err := db.GetRoomUserSession(g.RoomId, playerId)
+	if err != nil {
+		return
+	}
+
 	packet := mp(pt_OGameAction, data)
-	Send(g.C, playerId, &packet)
+	Send(g.C, session, &packet)
 }
 
 func (g *gc) EndGame() {

@@ -151,11 +151,6 @@ func endGame(c interfaces.GameCommunication, gameId uuid.UUID, pr *RoundInfo) er
 		return err
 	}
 
-	err = db.ExpireCache(gameId, cacheExpireTime)
-	if err != nil {
-		return err
-	}
-
 	c.EndGame()
 
 	pGs, err := getPublicGameState(gameId)
@@ -178,6 +173,11 @@ func endGame(c interfaces.GameCommunication, gameId uuid.UUID, pr *RoundInfo) er
 func cleanup(gameId uuid.UUID) error {
 	c := db.GetCursor(gameId, playerType)
 	err := c.Delete()
+	if err != nil {
+		return err
+	}
+
+	err = db.ExpireCache(gameId, cacheExpireTime)
 	if err != nil {
 		return err
 	}

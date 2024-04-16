@@ -151,6 +151,11 @@ func (h *Handler) HandleReady(c interfaces.GameCommunication, gameId uuid.UUID, 
 }
 
 func (h *Handler) HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error {
+	isPlayer := db.PlayerIsType(gameId, playerId, playerType)
+	if !isPlayer {
+		return nil
+	}
+
 	cursor := db.GetCursor(gameId, playerType)
 	current, err := cursor.Current()
 	if err != nil {
@@ -206,6 +211,10 @@ func (h *Handler) HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, 
 	}
 
 	return nil
+}
+
+func (h *Handler) Cleanup(gameId uuid.UUID) error {
+	return cleanup(gameId)
 }
 
 func checkEnd(gameId uuid.UUID) (bool, error) {

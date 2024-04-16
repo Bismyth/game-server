@@ -32,7 +32,7 @@ const errorMessages = computed(() => {
   return [message]
 })
 
-const removeErrors = (n: number) => {
+const removeErrors = () => {
   errors.value = undefined
 }
 

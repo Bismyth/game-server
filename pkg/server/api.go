@@ -6,12 +6,14 @@ import (
 	"net/http"
 
 	"github.com/Bismyth/game-server/pkg/api"
+	"github.com/Bismyth/game-server/pkg/db"
 	"github.com/google/uuid"
 )
 
 func (S *Server) RegisterAPI(mux *http.ServeMux) {
 	mux.HandleFunc("/api/room/create", S.CreateRoom)
 	mux.HandleFunc("/api/room/join", S.JoinRoom)
+	mux.HandleFunc("/api/room/tokens", S.ValidateRoomTokens)
 }
 
 func (S *Server) CreateRoom(w http.ResponseWriter, r *http.Request) {
@@ -70,4 +72,35 @@ func (S *Server) JoinRoom(w http.ResponseWriter, r *http.Request) {
 
 	token, err := api.JoinRoom(S.WSHub, input.Id, input.Name)
 	sendRoomResponse(w, input.Id, token, err)
+}
+
+func (S *Server) ValidateRoomTokens(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only Post is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var input []string
+	err := json.NewDecoder(r.Body).Decode(&input)
+	if err != nil {
+		http.Error(w, "expected a list of ids", http.StatusUnprocessableEntity)
+		return
+	}
+
+	output := make([]bool, len(input))
+	for i, idString := range input {
+		id, err := uuid.Parse(idString)
+		if err != nil {
+			output[i] = false
+			continue
+		}
+
+		exists, _ := db.RoomExists(id)
+		output[i] = exists
+	}
+
+	err = json.NewEncoder(w).Encode(output)
+	if err != nil {
+		log.Printf("failed to marshal api response: %v", err)
+	}
 }

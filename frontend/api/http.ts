@@ -10,6 +10,8 @@ const roomJoinResponseSchema = z.object({
   id: z.string().uuid(),
 })
 
+const roomTokenPrefix = 'room:'
+
 const handleJoinResponse = (response: unknown) => {
   const es = useErrorStore()
   const result = roomJoinResponseSchema.safeParse(response)
@@ -25,7 +27,7 @@ const handleJoinResponse = (response: unknown) => {
     return
   }
 
-  localStorage.setItem(`room:${result.data.id}`, result.data.token)
+  localStorage.setItem(`${roomTokenPrefix}${result.data.id}`, result.data.token)
 
   router.replace({ name: 'room', params: { id: result.data.id } })
 }
@@ -40,9 +42,10 @@ const createRoom = async (name: string) => {
 
   if (res.status !== 200) {
     const responseText = await res.text()
+
     es.add({
       type: 'danger',
-      message: responseText,
+      message: responseText || `Server Error: ${res.status}`,
     })
     return
   }
@@ -63,7 +66,7 @@ const joinRoom = async (id: string, name: string) => {
     const responseText = await res.text()
     es.add({
       type: 'danger',
-      message: responseText,
+      message: responseText || `Server Error: ${res.status}`,
     })
     return
   }
@@ -72,4 +75,34 @@ const joinRoom = async (id: string, name: string) => {
   handleJoinResponse(data)
 }
 
-export default { createRoom, joinRoom }
+const validateTokens = async () => {
+  const ids = Object.keys(localStorage)
+    .filter((v) => v.startsWith(roomTokenPrefix))
+    .map((v) => v.slice(roomTokenPrefix.length))
+
+  const res = await fetch('/api/room/tokens', {
+    method: 'POST',
+    body: JSON.stringify(ids),
+  })
+
+  const es = useErrorStore()
+
+  if (res.status !== 200) {
+    const responseText = await res.text()
+    es.add({
+      type: 'danger',
+      message: responseText || `Server Error: ${res.status}`,
+    })
+    return
+  }
+
+  const data = await res.json()
+
+  ids.forEach((v, i) => {
+    if (!data[i]) {
+      localStorage.removeItem(`${roomTokenPrefix}${v}`)
+    }
+  })
+}
+
+export default { createRoom, joinRoom, validateTokens }

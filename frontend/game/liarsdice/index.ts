@@ -1,5 +1,6 @@
 /* eslint-disable prefer-const */
 import api from '@/api'
+import { useRoomStore } from '@/stores/room'
 import { reactive, ref } from 'vue'
 import { z } from 'zod'
 
@@ -143,6 +144,12 @@ const handleState = (data: unknown) => {
       bidAmount: a,
       bidFace: f,
     }
+
+    const room = useRoomStore()
+
+    if (result.data.public.playerTurn !== room.data.userId) {
+      gameData.isTurn = false
+    }
   }
   if (result.data.private) {
     if (gameData.privateState !== undefined) {
@@ -175,4 +182,14 @@ const handleEvent = (data: unknown) => {
   console.log(data)
 }
 
-export default { create, bid, call, gameData, showCall, showGameOver, rollHand, closeCallScreen }
+export default {
+  create,
+  bid,
+  call,
+  ready,
+  gameData,
+  showCall,
+  showGameOver,
+  rollHand,
+  closeCallScreen,
+}

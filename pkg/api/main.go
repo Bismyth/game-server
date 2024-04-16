@@ -68,12 +68,12 @@ func MarshalPacket[T any](packet *Packet[T]) []byte {
 	return data
 }
 
-func Send[T any](c Client, clientId uuid.UUID, packet *Packet[T]) {
-	c.Send([]uuid.UUID{clientId}, MarshalPacket(packet))
+func Send[T any](c Client, sessionId uuid.UUID, packet *Packet[T]) {
+	c.Send([]uuid.UUID{sessionId}, MarshalPacket(packet))
 }
 
-func SendMany[T any](c Client, clientIds []uuid.UUID, packet *Packet[T]) {
-	c.Send(clientIds, MarshalPacket(packet))
+func SendMany[T any](c Client, sessionIds []uuid.UUID, packet *Packet[T]) {
+	c.Send(sessionIds, MarshalPacket(packet))
 }
 
 func HandleIncomingMessage(c Client, m *IRawMessage) {

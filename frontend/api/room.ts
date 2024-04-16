@@ -67,11 +67,19 @@ const options = (data: Record<string, any>) => {
   })
 }
 
+const kick = (id: string) => {
+  sendMessage({
+    type: OPacketType.RoomKick,
+    data: id,
+  })
+}
+
 export default {
   leave,
   users,
   change,
   options,
+  kick,
   roomUserChangeCB,
   roomChangeCB,
 }

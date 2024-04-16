@@ -9,7 +9,7 @@ import DarkModeToggle from '@/components/DarkModeToggle.vue'
 import LobbyUsers from '@/components/LobbyUsers.vue'
 import ErrorStore from '@/components/ErrorStore.vue'
 import IconButton from '@/components/IconButton.vue'
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import GameOptionsInfo from '@/components/games/GameOptionsInfo.vue'
 import RulesPage from '@/components/games/RulesPage.vue'
 
@@ -28,13 +28,17 @@ const start = () => {
 const showLinkCopiedText = ref(false)
 
 const shareLink = () => {
-  navigator.clipboard.writeText(`${window.location.origin}/?id=${room.id}`)
+  navigator.clipboard.writeText(`${window.location.origin}/?id=${room.data.id}`)
   showLinkCopiedText.value = true
 
   setTimeout(() => {
     showLinkCopiedText.value = false
   }, LINK_COPIED_TIMEOUT * 1000)
 }
+
+onMounted(() => {
+  room.setupConnection()
+})
 </script>
 
 <template>
@@ -55,7 +59,7 @@ const shareLink = () => {
       <div class="body-wrapper">
         <div class="box is-1 mb-0">
           <h1 class="title is-4">Players</h1>
-          <LobbyUsers :users="room.users" :host="room.host" />
+          <LobbyUsers :users="room.users" :host="room.data.host" />
         </div>
         <div class="box is-5">
           <div class="is-flex mb-4">
@@ -69,14 +73,16 @@ const shareLink = () => {
               <div class="is-size-5">
                 <div class="mb-3">
                   <span class="has-text-weight-semibold">Game Type: </span>
-                  {{ room.gameType === '' ? 'Not Selected' : gameTypeLabels[room.gameType] }}
+                  {{
+                    room.data.gameType === '' ? 'Not Selected' : gameTypeLabels[room.data.gameType]
+                  }}
                 </div>
-                <div v-if="room.gameType !== ''">
-                  <RulesPage :game-type="room.gameType" />
+                <div v-if="room.data.gameType !== ''">
+                  <RulesPage :game-type="room.data.gameType" />
                 </div>
               </div>
             </div>
-            <div v-if="room.gameType !== ''">
+            <div v-if="room.data.gameType !== ''">
               <hr />
               <div class="is-flex mb-4">
                 <h1 class="title is-4 mb-0">Game Options</h1>
@@ -99,7 +105,7 @@ const shareLink = () => {
                 label="Start"
                 icon="fa6-solid:play"
                 color="primary"
-                :disabled="room.gameType === ''"
+                :disabled="room.data.gameType === ''"
                 v-if="room.isHost"
               />
             </div>

@@ -22,7 +22,7 @@ const submitForm = () => {
 const room = useRoomStore()
 
 const init = () => {
-  formWrap.value?.init(room.options)
+  formWrap.value?.init(room.data.options)
 }
 
 defineExpose({

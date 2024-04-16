@@ -1,4 +1,4 @@
-import error from './error'
+import { errorHandle, kickMessage } from './error'
 import { z } from 'zod'
 import { IPacketType } from './packetTypes'
 import { handleRoomChange, handleRoomUserChange } from './room'
@@ -8,11 +8,12 @@ import { handleGameAction, handleGameEvent, handleGameState } from './game'
 const routeMap: Record<IPacketType, (data: unknown) => void> = {
   [IPacketType.RoomInfo]: handleRoomChange,
   [IPacketType.RoomUserChange]: handleRoomUserChange,
-  [IPacketType.Error]: error.handle,
+  [IPacketType.Error]: errorHandle,
   [IPacketType.GameState]: handleGameState,
   [IPacketType.GameAction]: handleGameAction,
   [IPacketType.GameEvent]: handleGameEvent,
-  [IPacketType.GameError]: error.handle,
+  [IPacketType.GameError]: errorHandle,
+  [IPacketType.RoomKick]: kickMessage,
 }
 
 const incomingSchema = z.object({
