@@ -56,6 +56,10 @@ $purple: #6c0f6a;
   flex-grow: 1;
 }
 
+#app {
+  display: flex;
+}
+
 .centerize > .container {
   flex-grow: 0;
 }
@@ -99,4 +103,18 @@ $purple: #6c0f6a;
 
 .icon.btn:hover {
   opacity: 0.6;
+}
+
+#slideout-right {
+  background: blue;
+  height: 100%;
+  transition: 0.4s;
+  position: fixed;
+  top: 0;
+  width: 300px;
+  right: -300px;
+}
+
+#slideout-right > .is-active {
+  right: 0;
 }
