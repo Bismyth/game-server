@@ -1,19 +1,19 @@
 <script setup lang="ts">
 import GameError from '@/components/games/GameError.vue'
 import GameLoading from '@/components/games/GameLoading.vue'
-import { useLobbyStore } from '@/stores/lobby'
-import { defineAsyncComponent } from 'vue'
+import { useRoomStore } from '@/stores/room'
+import { defineAsyncComponent, onMounted } from 'vue'
 
-const lobby = useLobbyStore()
+const room = useRoomStore()
 
 const GameRender = defineAsyncComponent({
   // the loader function
   loader: () => {
-    if (lobby.gameType === '') {
+    if (room.data.gameType === '') {
       throw Error('no game type set')
     }
 
-    return import(`../components/games/${lobby.gameType}/GameDisplay.vue`)
+    return import(`../components/games/${room.data.gameType}/GameDisplay.vue`)
   },
 
   // A component to use while the async component is loading
@@ -27,9 +27,13 @@ const GameRender = defineAsyncComponent({
   // provided and exceeded. Default: Infinity.
   timeout: 3000,
 })
+
+onMounted(() => {
+  room.setupConnection()
+})
 </script>
 
 <template>
-  <div v-if="!lobby.ready">Loading...</div>
+  <div v-if="!room.ready">Loading...</div>
   <GameRender v-else />
 </template>

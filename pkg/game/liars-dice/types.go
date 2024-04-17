@@ -40,7 +40,7 @@ type ParsedRoundInfo struct {
 	LastBid  uuid.UUID
 	CallUser uuid.UUID
 	DiceLost uuid.UUID
-	Leave    uuid.UUID
+	Leave    string
 }
 
 type PrivateGameState struct {

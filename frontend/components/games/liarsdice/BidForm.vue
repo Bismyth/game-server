@@ -9,22 +9,16 @@ const emit = defineEmits<{
   bid: [string]
 }>()
 
+const amount = ref<string>('')
+const face = ref<string>('')
+
 const formSubmitHandler = (e: Event) => {
   e.preventDefault()
 
   const target = e.target as HTMLFormElement
 
-  const formData = new FormData(target)
-
-  const formValues = [...formData.values()]
-
-  if (formValues.length !== 2) {
-    errorMessage.value = 'Please enter all fields'
-    return
-  }
-
-  const a = parseInt(formValues[0].toString())
-  const f = parseInt(formValues[1].toString())
+  const a = parseInt(amount.value)
+  const f = parseInt(face.value)
 
   if (Number.isNaN(a) || Number.isNaN(f)) {
     errorMessage.value = 'Please enter all fields'
@@ -53,6 +47,8 @@ const formSubmitHandler = (e: Event) => {
 const handleReset = (e: Event) => {
   e.preventDefault()
   errorMessage.value = ''
+  amount.value = ''
+  face.value = ''
 }
 
 const errorMessage = ref('')
@@ -64,12 +60,18 @@ const errorMessage = ref('')
     <div class="field">
       <div class="field has-addons">
         <p class="control">
-          <input class="input" type="text" placeholder="Amount..." name="amount" />
+          <input
+            class="input"
+            type="text"
+            placeholder="Amount..."
+            v-model="amount"
+            autocomplete="off"
+          />
         </p>
         <p class="control">
           <span class="select">
-            <select name="face">
-              <option disabled selected>Face...</option>
+            <select v-model="face">
+              <option value="" disabled selected>Face...</option>
               <option v-for="o in faces" :key="o" :value="o">{{ o }}</option>
             </select>
           </span>

@@ -52,7 +52,8 @@ $purple: #6c0f6a;
   justify-content: center;
   align-content: center;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh;
+  flex-grow: 1;
 }
 
 .centerize > .container {
@@ -90,4 +91,12 @@ $purple: #6c0f6a;
 
 .field .field {
   margin-bottom: 0;
+}
+
+.icon.btn {
+  color: var(--bulma-text);
+}
+
+.icon.btn:hover {
+  opacity: 0.6;
 }

@@ -3,49 +3,48 @@ import api from '@/api'
 import LobbyOptions from '@/components/LobbyOptions.vue'
 import GameOptionsForm from '@/components/games/GameOptionsForm.vue'
 import { gameTypeLabels } from '@/game'
-import { useLobbyStore } from '@/stores/lobby'
+import { useRoomStore } from '@/stores/room'
 import FullLogo from '@/components/FullLogo.vue'
 import DarkModeToggle from '@/components/DarkModeToggle.vue'
 import LobbyUsers from '@/components/LobbyUsers.vue'
 import ErrorStore from '@/components/ErrorStore.vue'
 import IconButton from '@/components/IconButton.vue'
-import { computed, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import GameOptionsInfo from '@/components/games/GameOptionsInfo.vue'
-import { useUserStore } from '@/stores/user'
 import RulesPage from '@/components/games/RulesPage.vue'
 
 const LINK_COPIED_TIMEOUT = 2 //seconds
 
-const lobby = useLobbyStore()
+const room = useRoomStore()
 
 const leave = () => {
-  lobby.leave()
+  room.leave()
 }
 
-const create = () => {
-  api.game.newGame(lobby.id)
+const start = () => {
+  api.game.startGame()
 }
-
-const user = useUserStore()
-
-const isHost = computed(() => lobby.users[user.data.id]?.host ?? false)
 
 const showLinkCopiedText = ref(false)
 
 const shareLink = () => {
-  navigator.clipboard.writeText(`${window.location.origin}/?id=${lobby.id}`)
+  navigator.clipboard.writeText(`${window.location.origin}/?id=${room.data.id}`)
   showLinkCopiedText.value = true
 
   setTimeout(() => {
     showLinkCopiedText.value = false
   }, LINK_COPIED_TIMEOUT * 1000)
 }
+
+onMounted(() => {
+  room.setupConnection()
+})
 </script>
 
 <template>
   <main class="centerize">
     <ErrorStore />
-    <div class="box container b-primary" v-if="lobby.ready">
+    <div class="box container b-primary" v-if="room.ready">
       <div class="logo-header mb-4">
         <div class="outer">
           <IconButton icon="fa6-solid:arrow-left" label="Leave" @click="leave" />
@@ -60,12 +59,12 @@ const shareLink = () => {
       <div class="body-wrapper">
         <div class="box is-1 mb-0">
           <h1 class="title is-4">Players</h1>
-          <LobbyUsers :users="lobby.users" />
+          <LobbyUsers :users="room.users" :host="room.data.host" />
         </div>
         <div class="box is-5">
           <div class="is-flex mb-4">
             <h1 class="title is-4 mb-0">Lobby Info</h1>
-            <div class="buttons ml-auto" v-if="isHost">
+            <div class="buttons ml-auto" v-if="room.isHost">
               <LobbyOptions />
             </div>
           </div>
@@ -74,18 +73,20 @@ const shareLink = () => {
               <div class="is-size-5">
                 <div class="mb-3">
                   <span class="has-text-weight-semibold">Game Type: </span>
-                  {{ lobby.gameType === '' ? 'Not Selected' : gameTypeLabels[lobby.gameType] }}
+                  {{
+                    room.data.gameType === '' ? 'Not Selected' : gameTypeLabels[room.data.gameType]
+                  }}
                 </div>
-                <div v-if="lobby.gameType !== ''">
-                  <RulesPage :game-type="lobby.gameType" />
+                <div v-if="room.data.gameType !== ''">
+                  <RulesPage :game-type="room.data.gameType" />
                 </div>
               </div>
             </div>
-            <div v-if="lobby.gameType !== ''">
+            <div v-if="room.data.gameType !== ''">
               <hr />
               <div class="is-flex mb-4">
                 <h1 class="title is-4 mb-0">Game Options</h1>
-                <div class="buttons ml-auto" v-if="isHost">
+                <div class="buttons ml-auto" v-if="room.isHost">
                   <GameOptionsForm />
                 </div>
               </div>
@@ -100,12 +101,12 @@ const shareLink = () => {
             </div>
             <div class="control">
               <IconButton
-                @click="create"
+                @click="start"
                 label="Start"
                 icon="fa6-solid:play"
                 color="primary"
-                :disabled="lobby.gameType === ''"
-                v-if="isHost"
+                :disabled="room.data.gameType === ''"
+                v-if="room.isHost"
               />
             </div>
           </div>

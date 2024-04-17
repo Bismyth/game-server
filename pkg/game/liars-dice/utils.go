@@ -100,13 +100,8 @@ func generatePreviousRound(gameId uuid.UUID, pvInfo *ParsedRoundInfo) (*RoundInf
 
 	roundInfo.Round = r.Round + 1
 
-	if pvInfo.Leave != uuid.Nil {
-		name, err := db.GetUserName(pvInfo.Leave)
-		if err != nil {
-			return nil, err
-		}
-
-		roundInfo.Leave = name
+	if pvInfo.Leave != "" {
+		roundInfo.Leave = pvInfo.Leave
 		return &roundInfo, nil
 	}
 
@@ -156,11 +151,6 @@ func endGame(c interfaces.GameCommunication, gameId uuid.UUID, pr *RoundInfo) er
 		return err
 	}
 
-	err = db.ExpireCache(gameId, cacheExpireTime)
-	if err != nil {
-		return err
-	}
-
 	c.EndGame()
 
 	pGs, err := getPublicGameState(gameId)
@@ -183,6 +173,11 @@ func endGame(c interfaces.GameCommunication, gameId uuid.UUID, pr *RoundInfo) er
 func cleanup(gameId uuid.UUID) error {
 	c := db.GetCursor(gameId, playerType)
 	err := c.Delete()
+	if err != nil {
+		return err
+	}
+
+	err = db.ExpireCache(gameId, cacheExpireTime)
 	if err != nil {
 		return err
 	}

@@ -1,31 +1,39 @@
 <script setup lang="ts">
 import ld from '@/game/liarsdice'
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import IconButton from '@/components/IconButton.vue'
 import DiceHand from './DiceHand.vue'
 import DiceCube from './DiceCube.vue'
 import BidForm from './BidForm.vue'
 import ErrorStore from '@/components/ErrorStore.vue'
-import { useLobbyStore } from '@/stores/lobby'
+import { useRoomStore } from '@/stores/room'
 import { Icon } from '@iconify/vue'
 import CallModal from './CallModal.vue'
-import { useUserStore } from '@/stores/user'
 import EndGame from './EndGame.vue'
 import { useRouter } from 'vue-router'
 import RulesPage from './RulesPage.vue'
+import RoomName from '@/components/RoomName.vue'
 
-const lobby = useLobbyStore()
-const user = useUserStore()
+const room = useRoomStore()
 
 const router = useRouter()
 
 onMounted(async () => {
-  ld.create(lobby.id)
+  ld.create()
 })
+
+watch(
+  () => room.data.inGame,
+  (v, ov) => {
+    if (v && !ov) {
+      ld.create()
+    }
+  },
+)
 
 const outPlayers = computed(() => {
   const ids: string[] = []
-  for (const k in lobby.users) {
+  for (const k of room.users.order) {
     if (!ld.gameData.publicState?.turnOrder.includes(k)) {
       ids.push(k)
     }
@@ -38,15 +46,15 @@ const isIn = (id: string) => {
 }
 
 const handleBid = (bid: string) => {
-  ld.bid(lobby.id, bid)
+  ld.bid(bid)
 }
 
 const handleCall = () => {
-  ld.call(lobby.id)
+  ld.call()
 }
 
 const leave = () => {
-  lobby.leave()
+  room.leave()
 }
 
 const totalDice = computed(() => {
@@ -70,7 +78,7 @@ const handleGameOverClose = () => {
 }
 
 const handleLobbyBack = () => {
-  router.replace({ name: 'lobby' })
+  router.replace({ name: 'room', params: { id: room.data.id } })
 }
 </script>
 
@@ -122,9 +130,7 @@ const handleLobbyBack = () => {
                       v-if="id == ld.gameData.publicState?.playerTurn"
                     />
                   </span>
-                  <span :class="{ 'has-text-weight-bold': id === user.data.id }">
-                    {{ lobby.users[id]?.name }}
-                  </span>
+                  <RoomName :id="id" kick />
                 </span>
               </div>
               <div>
@@ -135,12 +141,12 @@ const handleLobbyBack = () => {
           <h4 class="title is-5">Out</h4>
           <div>
             <div v-for="id in outPlayers" :key="id">
-              <span> {{ lobby.users[id].name }} </span>
+              <RoomName :id="id" kick />
             </div>
           </div>
         </div>
         <div class="box is-5">
-          <div class="mb-4" v-if="isIn(user.data.id)">
+          <div class="mb-4" v-if="isIn(room.data.userId)">
             <h4 class="title is-4 mb-2">Hand</h4>
             <DiceHand
               :true-value="ld.gameData.privateState?.dice ?? []"
@@ -160,7 +166,7 @@ const handleLobbyBack = () => {
           </div>
           <div v-if="ld.gameData.isTurn">
             <hr />
-            <h4 class="title is-5">Its your turn! Please input a move:</h4>
+            <div class="is-size-5 mb-3">Its your turn! Please input a move:</div>
             <div class="is-flex">
               <BidForm @bid="handleBid" :current-bid="ld.gameData.publicState?.highestBid ?? ''" />
               <div>
@@ -180,7 +186,7 @@ const handleLobbyBack = () => {
   />
   <EndGame
     :show="ld.showGameOver.value"
-    :last-player="lobby.users[ld.gameData.publicState?.turnOrder[0] ?? '']?.name"
+    :last-player="room.users.names[ld.gameData.publicState?.turnOrder[0] ?? '']"
     @close="handleGameOverClose"
     @back="handleLobbyBack"
   />

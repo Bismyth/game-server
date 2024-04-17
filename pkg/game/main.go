@@ -17,6 +17,7 @@ type GameHandler interface {
 	New(gameId uuid.UUID, options []byte) error
 	DefaultOptions() interface{}
 	HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error
+	Cleanup(gameId uuid.UUID) error
 }
 
 var gameHandlers map[string]GameHandler = map[string]GameHandler{
@@ -27,32 +28,26 @@ type SharedState struct {
 	Id uuid.UUID
 }
 
-func getGameType(data json.RawMessage) (GameHandler, uuid.UUID, error) {
-	var state SharedState
-	err := json.Unmarshal(data, &state)
+func getGameType(gameId uuid.UUID) (GameHandler, error) {
+	gameType, err := db.GetRoomProperty[string](gameId, "gameType")
 	if err != nil {
-		return nil, uuid.Nil, fmt.Errorf("failed to unmarshal gameId")
-	}
-
-	gameType, err := db.GetLobbyProperty[string](state.Id, "gameType")
-	if err != nil {
-		return nil, state.Id, err
+		return nil, err
 	}
 
 	h, ok := gameHandlers[gameType]
 	if !ok {
-		return nil, state.Id, fmt.Errorf("game type not found in list")
+		return nil, fmt.Errorf("game type not found in list")
 	}
-	return h, state.Id, nil
+	return h, nil
 }
 
-func HandleAction(c interfaces.GameCommunication, playerId uuid.UUID, data json.RawMessage) error {
-	h, id, err := getGameType(data)
+func HandleAction(c interfaces.GameCommunication, roomId, playerId uuid.UUID, data json.RawMessage) error {
+	h, err := getGameType(roomId)
 	if err != nil {
 		return err
 	}
 
-	inGame, err := db.IsUserInLobby(id, playerId)
+	inGame, err := db.RoomHasUser(roomId, playerId)
 	if err != nil {
 		return err
 	}
@@ -61,15 +56,15 @@ func HandleAction(c interfaces.GameCommunication, playerId uuid.UUID, data json.
 		return fmt.Errorf("you are not part of this game")
 	}
 
-	return h.HandleAction(c, id, playerId, data)
+	return h.HandleAction(c, roomId, playerId, data)
 }
 
-func HandleReady(c interfaces.GameCommunication, playerId uuid.UUID, data json.RawMessage) error {
-	h, id, err := getGameType(data)
+func HandleReady(c interfaces.GameCommunication, roomId, playerId uuid.UUID, data json.RawMessage) error {
+	h, err := getGameType(roomId)
 	if err != nil {
 		return err
 	}
-	inGame, err := db.IsUserInLobby(id, playerId)
+	inGame, err := db.RoomHasUser(roomId, playerId)
 	if err != nil {
 		return err
 	}
@@ -78,11 +73,11 @@ func HandleReady(c interfaces.GameCommunication, playerId uuid.UUID, data json.R
 		return fmt.Errorf("you are not part of this game")
 	}
 
-	return h.HandleReady(c, id, playerId)
+	return h.HandleReady(c, roomId, playerId)
 }
 
-func New(lobbyId uuid.UUID) error {
-	gameType, err := db.GetLobbyProperty[string](lobbyId, "gameType")
+func New(roomId uuid.UUID) error {
+	gameType, err := db.GetRoomProperty[string](roomId, "gameType")
 	if err != nil {
 		return err
 	}
@@ -92,7 +87,7 @@ func New(lobbyId uuid.UUID) error {
 		return fmt.Errorf("unrecognized game type")
 	}
 
-	playerMap, err := db.GetLobbyUsers(lobbyId)
+	playerMap, err := db.GetRoomUsers(roomId)
 	if err != nil {
 		return err
 	}
@@ -103,17 +98,17 @@ func New(lobbyId uuid.UUID) error {
 		i++
 	}
 
-	options, err := db.GetLobbyProperty[json.RawMessage](lobbyId, "options")
+	options, err := db.GetRoomProperty[json.RawMessage](roomId, "options")
 	if err != nil {
 		return fmt.Errorf("failed to get options from lobby")
 	}
 
-	err = h.New(lobbyId, options)
+	err = h.New(roomId, options)
 	if err != nil {
 		return err
 	}
 
-	err = db.SetLobbyProperty(lobbyId, "inGame", true)
+	err = db.SetRoomProperty(roomId, "inGame", true)
 	if err != nil {
 		return err
 	}
@@ -122,7 +117,7 @@ func New(lobbyId uuid.UUID) error {
 }
 
 func HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error {
-	gameType, err := db.GetLobbyProperty[string](gameId, "gameType")
+	gameType, err := db.GetRoomProperty[string](gameId, "gameType")
 	if err != nil {
 		return fmt.Errorf("failed to get game type")
 	}

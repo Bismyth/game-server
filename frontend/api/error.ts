@@ -4,7 +4,7 @@ import { useErrorStore } from '@/stores/error'
 
 const errorMessageSchema = z.string()
 
-const handle = (data: unknown) => {
+export const errorHandle = (data: unknown) => {
   const parsedData = parseData(data, errorMessageSchema)
 
   const errorStore = useErrorStore()
@@ -14,4 +14,10 @@ const handle = (data: unknown) => {
   })
 }
 
-export default { handle }
+export const kickMessage = () => {
+  const errorStore = useErrorStore()
+  errorStore.add({
+    type: 'danger',
+    message: `You were kicked from the room`,
+  })
+}

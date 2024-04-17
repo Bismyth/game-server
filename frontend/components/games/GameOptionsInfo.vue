@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { useLobbyStore } from '@/stores/lobby'
+import { useRoomStore } from '@/stores/room'
 import { defineAsyncComponent, watch } from 'vue'
 
-const lobby = useLobbyStore()
+const room = useRoomStore()
 
-const getOptionsInfo = (gameType: typeof lobby.gameType) =>
+const getOptionsInfo = (gameType: typeof room.data.gameType) =>
   defineAsyncComponent({
     // the loader function
     loader: () => {
@@ -13,10 +13,10 @@ const getOptionsInfo = (gameType: typeof lobby.gameType) =>
     timeout: 3000,
   })
 
-let OptionsInfo = getOptionsInfo(lobby.gameType)
+let OptionsInfo = getOptionsInfo(room.data.gameType)
 
 watch(
-  () => lobby.gameType,
+  () => room.data.gameType,
   (nv) => {
     OptionsInfo = getOptionsInfo(nv)
   },
@@ -24,7 +24,7 @@ watch(
 </script>
 
 <template>
-  <div v-if="lobby.gameType">
-    <OptionsInfo :data="lobby.options" />
+  <div v-if="room.data.gameType">
+    <OptionsInfo :data="room.data.options" />
   </div>
 </template>

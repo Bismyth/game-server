@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import api from '@/api'
-import { useLobbyStore } from '@/stores/lobby'
+import { useRoomStore } from '@/stores/room'
 import { defineAsyncComponent, ref, watch } from 'vue'
 import ModalWrap from '../ModalWrap.vue'
 import { gameTypeLabels } from '@/game'
 import IconButton from '../IconButton.vue'
 
-const lobby = useLobbyStore()
+const room = useRoomStore()
 
-const getGameOptions = (gameType: typeof lobby.gameType) =>
+const getGameOptions = (gameType: typeof room.data.gameType) =>
   defineAsyncComponent({
     // the loader function
     loader: () => {
@@ -17,10 +17,10 @@ const getGameOptions = (gameType: typeof lobby.gameType) =>
     timeout: 3000,
   })
 
-let GameOptions = getGameOptions(lobby.gameType)
+let GameOptions = getGameOptions(room.data.gameType)
 
 watch(
-  () => lobby.gameType,
+  () => room.data.gameType,
   (nv) => {
     GameOptions = getGameOptions(nv)
   },
@@ -30,7 +30,7 @@ watch(
 let optionsFormRef = ref<any>(null)
 
 const handleFormSubmit = (data: any) => {
-  api.lobby.options(lobby.id, data)
+  api.room.options(data)
   showGameOptions.value = false
 }
 
@@ -47,11 +47,11 @@ const onOpen = () => {
 </script>
 
 <template>
-  <div v-if="lobby.gameType">
+  <div v-if="room.data.gameType">
     <IconButton @click="onOpen" icon="fa6-solid:screwdriver-wrench" label="Options" />
     <ModalWrap
       :shown="showGameOptions"
-      :title="`${gameTypeLabels[lobby.gameType]} Options`"
+      :title="`${gameTypeLabels[room.data.gameType]} Options`"
       @close="onClose"
     >
       <template #body>

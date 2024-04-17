@@ -1,6 +1,6 @@
 /* eslint-disable prefer-const */
 import api from '@/api'
-import { useUserStore } from '@/stores/user'
+import { useRoomStore } from '@/stores/room'
 import { reactive, ref } from 'vue'
 import { z } from 'zod'
 
@@ -38,18 +38,14 @@ const stateSchema = z.object({
 
 type privateStateT = z.infer<typeof privateStateScehma>
 
-let idStore = ''
-
-const create = (id: string) => {
-  idStore = id
-
+const create = () => {
   api.game.handleAction.fn = handleAction
   api.game.handleEvent.fn = handleEvent
   api.game.handleState.fn = handleState
 
   resetValues()
 
-  ready(idStore)
+  ready()
 }
 
 const resetValues = () => {
@@ -85,23 +81,23 @@ const rollHandTime = 3 * 1000 //5 seconds
 
 let triggerRollHand = false
 
-const ready = (lobbyId: string) => {
-  api.game.ready(lobbyId)
+const ready = () => {
+  api.game.ready()
 }
 
-const takeAction = (lobbyId: string, option: string, data: any) => {
+const takeAction = (option: string, data?: any) => {
   if (!gameData.isTurn) {
     return
   }
-  api.game.action(lobbyId, option, data)
+  api.game.action(option, data)
 }
 
-const bid = (lobbyId: string, bid: string) => {
-  takeAction(lobbyId, 'bid', { bid })
+const bid = (bid: string) => {
+  takeAction('bid', { bid })
 }
 
-const call = (lobbyId: string) => {
-  takeAction(lobbyId, 'call', undefined)
+const call = () => {
+  takeAction('call')
 }
 
 const closeCallScreen = () => {
@@ -140,6 +136,7 @@ const handleState = (data: unknown) => {
 
     if (result.data.public.highestBid != '' && showCall.value) {
       showCall.value = false
+      closeCallScreen()
     }
 
     const [a, f] = splitBid(result.data.public.highestBid)
@@ -148,18 +145,18 @@ const handleState = (data: unknown) => {
       bidAmount: a,
       bidFace: f,
     }
+
+    const room = useRoomStore()
+
+    if (result.data.public.playerTurn !== room.data.userId) {
+      gameData.isTurn = false
+    }
   }
   if (result.data.private) {
     if (gameData.privateState !== undefined) {
       triggerRollHand = true
     }
     gameData.privateState = result.data.private
-  }
-
-  const user = useUserStore()
-
-  if (result.data.public) {
-    gameData.isTurn = result.data.public.playerTurn === user.data.id
   }
 }
 
@@ -180,9 +177,20 @@ const handleAction = (data: unknown) => {
     return
   }
   gameData.currentOptions = result.data
+  gameData.isTurn = true
 }
 const handleEvent = (data: unknown) => {
   console.log(data)
 }
 
-export default { create, bid, call, gameData, showCall, showGameOver, rollHand, closeCallScreen }
+export default {
+  create,
+  bid,
+  call,
+  ready,
+  gameData,
+  showCall,
+  showGameOver,
+  rollHand,
+  closeCallScreen,
+}

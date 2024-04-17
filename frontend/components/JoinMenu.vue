@@ -3,30 +3,40 @@ import api from '@/api'
 import DarkModeToggle from '@/components/DarkModeToggle.vue'
 import FullLogo from '@/components/FullLogo.vue'
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 const props = defineProps<{
   id?: string
 }>()
 
-const createLobby = () => {
+const join = () => {
   if (name.value !== '') {
     localStorage.setItem('nickname', name.value)
   }
 
-  const lobbyName = name.value || previousName.value
+  const roomName = name.value || previousName.value
 
   if (props.id) {
-    api.lobby.join(props.id, lobbyName)
+    api.http.joinRoom(props.id, roomName)
   } else {
-    api.lobby.create(lobbyName)
+    api.http.createRoom(roomName)
   }
 }
 
 const name = ref('')
 
 const previousName = ref('')
+const router = useRouter()
 
 onMounted(() => {
+  if (props.id) {
+    if (localStorage.getItem(`room:${props.id}`)) {
+      router.replace({ name: 'room', params: { id: props.id } })
+    }
+  }
+
+  api.http.validateTokens()
+
   const nick = localStorage.getItem('nickname')
   if (nick) {
     previousName.value = nick
@@ -60,7 +70,7 @@ onMounted(() => {
           <hr />
           <div class="field is-grouped is-grouped-centered">
             <div class="control">
-              <button class="button is-primary" @click.prevent="createLobby">
+              <button class="button is-primary" @click.prevent="join">
                 {{ id ? 'Join Lobby' : 'Create Lobby' }}
               </button>
             </div>

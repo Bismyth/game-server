@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import ModalWrap from '@/components/ModalWrap.vue'
 import type { RoundInfo } from '@/game/liarsdice'
-import { useLobbyStore } from '@/stores/lobby'
 import { computed, ref, watch } from 'vue'
 import DiceHandValues from './DiceHandValues.vue'
 import DiceHandTabs from './DiceHandTabs.vue'
 import BidRender from './BidRender.vue'
 import DiceHandTotals from './DiceHandTotals.vue'
+import RoomName from '@/components/RoomName.vue'
 
 const props = defineProps<{
   show: boolean
@@ -20,10 +20,6 @@ const trueBidAmount = computed(() => {
 const isLeaveRound = computed(() => {
   return !!props.data?.leave
 })
-
-const lobby = useLobbyStore()
-
-const getName = (id: string) => lobby.users[id]?.name ?? ''
 
 const emit = defineEmits<{
   close: []
@@ -76,11 +72,11 @@ const handleChangeTab = (n: number) => {
       <div v-if="data && !isLeaveRound">
         <div>
           <p>
-            {{ getName(data.callUser) }} called out {{ getName(data.lastBid) }} for the bid
+            <RoomName :id="data.callUser" /> called out <RoomName :id="data.lastBid" /> for the bid
             <BidRender :bid="data.highestBid" />
           </p>
           <p>There were: <BidRender :bid="[calculatedAmount(trueBidAmount), trueBidAmount]" /></p>
-          <p>{{ getName(data.diceLost) }} lost a dice!</p>
+          <p><RoomName :id="data.diceLost" /> lost a dice!</p>
         </div>
         <div>
           <div class="is-flex is-justify-content-space-between is-align-items-center">
@@ -106,7 +102,7 @@ const handleChangeTab = (n: number) => {
               <DiceHandTotals :values="allFaceValues" :highlight="faceSelected" />
             </div>
             <div v-for="(h, id) in data.hands" :key="id" class="mb-2">
-              <h6 class="title is-6 mb-2">{{ getName(id) }}</h6>
+              <h6 class="title is-6 mb-2"><RoomName :id="id" /></h6>
               <DiceHandValues :true-value="h" :highlight="faceSelected" :tab-index="tabIndex" />
             </div>
           </div>

@@ -45,15 +45,34 @@ func (h *Hub) Send(ids []uuid.UUID, data []byte) {
 	}
 }
 
+var roomLeave = CloseMessage{
+	Code:    3001,
+	Message: "leave",
+}
+
+func (h *Hub) Close(id uuid.UUID) {
+	client, ok := h.clientIds[id]
+	if !ok {
+		log.Printf("tried to close unknown session: %v", id)
+	}
+	client.leaveMessage = &roomLeave
+	h.unregister <- client
+}
+
 func (h *Hub) Run() {
 	for {
 		select {
 		case client := <-h.register:
 			h.clients[client] = true
+			h.clientIds[client.sessionId] = client
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
+				err := api.HandleSessionClose(client.sessionId)
+				if err != nil {
+					log.Printf("failed to close session: %v", err)
+				}
 				delete(h.clients, client)
-				delete(h.clientIds, client.id)
+				delete(h.clientIds, client.sessionId)
 				close(client.send)
 			}
 		case message := <-h.broadcast:

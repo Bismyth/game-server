@@ -2,7 +2,7 @@ import { useErrorStore } from '@/stores/error'
 import { z, type ZodTypeAny } from 'zod'
 import type { OPacketType } from './packetTypes'
 
-export const sendMessage = (payload: { type: OPacketType; data: any }) => {
+export const sendMessage = (payload: { type: OPacketType; data?: any }) => {
   internalSend(payload)
 }
 

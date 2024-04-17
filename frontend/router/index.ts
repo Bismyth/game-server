@@ -12,12 +12,12 @@ const router = createRouter({
       component: HomeView,
     },
     {
-      path: '/lobby',
-      name: 'lobby',
+      path: '/room/:id',
+      name: 'room',
       component: LobbyView,
     },
     {
-      path: '/game',
+      path: '/game/:id',
       name: 'game',
       component: GameView,
     },

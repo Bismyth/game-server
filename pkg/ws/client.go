@@ -63,6 +63,11 @@ func AllowedOriginCheck(r *http.Request) bool {
 	return false
 }
 
+type CloseMessage struct {
+	Code    int
+	Message string
+}
+
 // Client is a middleman between the websocket connection and the hub.
 type Client struct {
 	hub *Hub
@@ -73,7 +78,11 @@ type Client struct {
 	// Buffered channel of outbound messages.
 	send chan []byte
 
-	id uuid.UUID
+	sessionId uuid.UUID
+
+	verified bool
+
+	leaveMessage *CloseMessage
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -81,6 +90,7 @@ type Client struct {
 // The application runs readPump in a per-connection goroutine. The application
 // ensures that there is at most one reader on a connection by executing all
 // reads from this goroutine.
+
 func (c *Client) readPump() {
 	defer func() {
 		c.hub.unregister <- c
@@ -92,31 +102,42 @@ func (c *Client) readPump() {
 	for {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
 				log.Printf("error: %v", err)
 			}
 			break
 		}
 
-		if c.id == uuid.Nil {
-			id, err := api.VerifyToken(string(message))
-			if err != nil {
-				errorPacket := api.CreateErrorPacket(fmt.Errorf("invalid initilization packet received"))
+		if !c.verified {
+			verifiedError := (func() error {
+				claims, err := api.VerifyRoomToken(string(message))
+				if err != nil {
+					return fmt.Errorf("invalid initilization packet received")
+				}
+				err = api.HandleSessionInit(c.hub, claims, c.sessionId)
+				if err != nil {
+					return fmt.Errorf("failed to initialize connection")
+				}
+				return nil
+			})()
+			if verifiedError != nil {
+				errorPacket := api.CreateErrorPacket(verifiedError)
 				c.conn.WriteMessage(websocket.TextMessage, api.MarshalPacket(&errorPacket))
+				c.leaveMessage = &roomLeave
 				c.hub.unregister <- c
-				break
+				continue
 			}
 
-			c.id = api.SetUserId(id)
+			c.verified = true
+
 			// TODO: Check for duplicate connection
-			c.send <- api.UserInitPacket(c.id)
-			c.hub.clientIds[c.id] = c
+			// c.send <- api.UserInitPacket(c.id)
 			continue
 		}
 
 		iPacket := api.IRawMessage{
-			Message: message,
-			UserId:  c.id,
+			Message:  message,
+			SessonId: c.sessionId,
 		}
 
 		c.hub.broadcast <- &iPacket
@@ -140,7 +161,12 @@ func (c *Client) writePump() {
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// The hub closed the channel.
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				message := []byte{}
+				if c.leaveMessage != nil {
+					message = websocket.FormatCloseMessage(c.leaveMessage.Code, c.leaveMessage.Message)
+				}
+
+				c.conn.WriteMessage(websocket.CloseMessage, message)
 				return
 			}
 
@@ -165,7 +191,13 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
+	id, err := uuid.NewV7()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256), sessionId: id}
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in

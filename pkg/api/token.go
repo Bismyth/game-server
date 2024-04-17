@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -19,31 +20,20 @@ func SetSigningKey(s string) {
 	signingKey = []byte(s)
 }
 
-func VerifyToken(t string) (uuid.UUID, error) {
-	var claims Claims
-
-	if t == "" {
-		return uuid.Nil, nil
-	}
-
-	token, err := jwt.ParseWithClaims(string(t), &claims, func(t *jwt.Token) (interface{}, error) {
-		return signingKey, nil
-	})
-
-	if err != nil || !token.Valid {
-		return uuid.Nil, nil
-	}
-
-	return claims.Id, nil
-}
-
 const expireTime time.Duration = time.Hour * 3
 
-func GenerateToken(userId uuid.UUID) (string, error) {
+type RoomTokenClaims struct {
+	RoomId uuid.UUID `json:"roomId"`
+	UserId uuid.UUID `json:"userId"`
+	jwt.RegisteredClaims
+}
+
+func GenerateRoomToken(roomId uuid.UUID, userId uuid.UUID) (string, error) {
 	expirationTime := time.Now().Add(expireTime)
 
-	claims := Claims{
-		Id: userId,
+	claims := RoomTokenClaims{
+		RoomId: roomId,
+		UserId: userId,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 		},
@@ -58,4 +48,22 @@ func GenerateToken(userId uuid.UUID) (string, error) {
 	}
 
 	return tokenString, nil
+}
+
+func VerifyRoomToken(t string) (RoomTokenClaims, error) {
+	var claims RoomTokenClaims
+
+	if t == "" {
+		return claims, fmt.Errorf("no room token given")
+	}
+
+	token, err := jwt.ParseWithClaims(string(t), &claims, func(t *jwt.Token) (interface{}, error) {
+		return signingKey, nil
+	})
+
+	if err != nil || !token.Valid {
+		return claims, fmt.Errorf("invalid room token")
+	}
+
+	return claims, nil
 }
