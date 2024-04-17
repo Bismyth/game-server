@@ -5,6 +5,7 @@ import { defineStore } from 'pinia'
 import { computed, reactive, ref } from 'vue'
 import router from '@/router'
 import { isNilUUID } from '@/api/main'
+import { useErrorStore } from './error'
 
 const nilUUID = '00000000-0000-0000-0000-000000000000'
 
@@ -38,6 +39,8 @@ export const useRoomStore = defineStore('room', () => {
 
   const isHost = computed(() => data.host === data.userId)
 
+  const es = useErrorStore()
+
   const setupConnection = () => {
     if (!ready.value) {
       data.id = router.currentRoute.value.params.id.toString()
@@ -63,8 +66,15 @@ export const useRoomStore = defineStore('room', () => {
 
       conn.onmessage = (evt) => api.handleIncomingMessage(evt.data)
 
-      conn.onclose = () => {
-        handleLeave()
+      conn.onclose = (ev) => {
+        if (ev.code === 3001) {
+          handleLeave()
+          return
+        }
+        es.add({
+          type: 'danger',
+          message: 'No active websocket, please reload the page',
+        })
       }
     }
   }

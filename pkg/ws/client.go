@@ -63,6 +63,11 @@ func AllowedOriginCheck(r *http.Request) bool {
 	return false
 }
 
+type CloseMessage struct {
+	Code    int
+	Message string
+}
+
 // Client is a middleman between the websocket connection and the hub.
 type Client struct {
 	hub *Hub
@@ -76,6 +81,8 @@ type Client struct {
 	sessionId uuid.UUID
 
 	verified bool
+
+	leaveMessage *CloseMessage
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -102,20 +109,25 @@ func (c *Client) readPump() {
 		}
 
 		if !c.verified {
-			claims, err := api.VerifyRoomToken(string(message))
-			if err != nil {
-				errorPacket := api.CreateErrorPacket(fmt.Errorf("invalid initilization packet received"))
+			verifiedError := (func() error {
+				claims, err := api.VerifyRoomToken(string(message))
+				if err != nil {
+					return fmt.Errorf("invalid initilization packet received")
+				}
+				err = api.HandleSessionInit(c.hub, claims, c.sessionId)
+				if err != nil {
+					return fmt.Errorf("failed to initialize connection")
+				}
+				return nil
+			})()
+			if verifiedError != nil {
+				errorPacket := api.CreateErrorPacket(verifiedError)
 				c.conn.WriteMessage(websocket.TextMessage, api.MarshalPacket(&errorPacket))
+				c.leaveMessage = &roomLeave
 				c.hub.unregister <- c
-				break
+				continue
 			}
-			err = api.HandleSessionInit(c.hub, claims, c.sessionId)
-			if err != nil {
-				errorPacket := api.CreateErrorPacket(fmt.Errorf("failed to initialize connection"))
-				c.conn.WriteMessage(websocket.TextMessage, api.MarshalPacket(&errorPacket))
-				c.hub.unregister <- c
-				break
-			}
+
 			c.verified = true
 
 			// TODO: Check for duplicate connection
@@ -149,7 +161,12 @@ func (c *Client) writePump() {
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// The hub closed the channel.
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				message := []byte{}
+				if c.leaveMessage != nil {
+					message = websocket.FormatCloseMessage(c.leaveMessage.Code, c.leaveMessage.Message)
+				}
+
+				c.conn.WriteMessage(websocket.CloseMessage, message)
 				return
 			}
 

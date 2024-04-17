@@ -45,8 +45,18 @@ func (h *Hub) Send(ids []uuid.UUID, data []byte) {
 	}
 }
 
+var roomLeave = CloseMessage{
+	Code:    3001,
+	Message: "leave",
+}
+
 func (h *Hub) Close(id uuid.UUID) {
-	h.unregister <- h.clientIds[id]
+	client, ok := h.clientIds[id]
+	if !ok {
+		log.Printf("tried to close unknown session: %v", id)
+	}
+	client.leaveMessage = &roomLeave
+	h.unregister <- client
 }
 
 func (h *Hub) Run() {
