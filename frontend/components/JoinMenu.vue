@@ -3,6 +3,7 @@ import api from '@/api'
 import DarkModeToggle from '@/components/DarkModeToggle.vue'
 import FullLogo from '@/components/FullLogo.vue'
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 const props = defineProps<{
   id?: string
@@ -25,8 +26,15 @@ const join = () => {
 const name = ref('')
 
 const previousName = ref('')
+const router = useRouter()
 
 onMounted(() => {
+  if (props.id) {
+    if (localStorage.getItem(`room:${props.id}`)) {
+      router.replace({ name: 'room', params: { id: props.id } })
+    }
+  }
+
   api.http.validateTokens()
 
   const nick = localStorage.getItem('nickname')

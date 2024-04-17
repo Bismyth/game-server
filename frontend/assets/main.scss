@@ -52,7 +52,9 @@ $purple: #6c0f6a;
   justify-content: center;
   align-content: center;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh;
+  flex-grow: 1;
+}
 }
 
 .centerize > .container {

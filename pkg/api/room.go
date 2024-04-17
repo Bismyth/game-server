@@ -180,11 +180,11 @@ func roomOptions(i HandlerInput) error {
 const pt_IRoomLeave = "client_room_leave"
 
 func roomLeave(i HandlerInput) error {
+	i.C.Close(i.SessionId)
 	err := handleLeave(i.C, i.Session.RoomId, i.Session.UserId)
 	if err != nil {
 		return err
 	}
-	i.C.Close(i.SessionId)
 	return nil
 }
 
@@ -231,13 +231,15 @@ func roomKick(i HandlerInput) error {
 
 	session, err := db.GetRoomUserSession(i.Session.RoomId, *id)
 	if err != nil {
-		return err
+		if !db.IsNilErr(err) {
+			return err
+		}
+	} else {
+		packet := mp(pt_ORoomKick, "")
+		Send(i.C, session, &packet)
+
+		i.C.Close(session)
 	}
-
-	packet := mp(pt_ORoomKick, "")
-	Send(i.C, session, &packet)
-
-	i.C.Close(session)
 
 	err = handleLeave(i.C, i.Session.RoomId, *id)
 	if err != nil {

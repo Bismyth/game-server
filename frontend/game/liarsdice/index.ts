@@ -136,6 +136,7 @@ const handleState = (data: unknown) => {
 
     if (result.data.public.highestBid != '' && showCall.value) {
       showCall.value = false
+      closeCallScreen()
     }
 
     const [a, f] = splitBid(result.data.public.highestBid)

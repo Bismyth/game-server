@@ -130,7 +130,7 @@ const handleLobbyBack = () => {
                       v-if="id == ld.gameData.publicState?.playerTurn"
                     />
                   </span>
-                  <RoomName :id="id" />
+                  <RoomName :id="id" kick />
                 </span>
               </div>
               <div>
@@ -141,7 +141,7 @@ const handleLobbyBack = () => {
           <h4 class="title is-5">Out</h4>
           <div>
             <div v-for="id in outPlayers" :key="id">
-              <RoomName :id="id" />
+              <RoomName :id="id" kick />
             </div>
           </div>
         </div>

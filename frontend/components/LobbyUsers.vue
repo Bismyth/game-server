@@ -16,7 +16,7 @@ defineProps<{
         <span class="icon">
           <Icon icon="fa6-solid:crown" v-if="host === id" />
         </span>
-        <RoomName :id="id" />
+        <RoomName :id="id" kick />
       </span>
     </div>
   </div>
