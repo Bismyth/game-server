@@ -67,7 +67,16 @@ export const useRoomStore = defineStore('room', () => {
       conn.onmessage = (evt) => api.handleIncomingMessage(evt.data)
 
       conn.onclose = (ev) => {
-        if (ev.code === 3001) {
+        const leaveCode = [3001, 1006]
+
+        if (ev.code === 1006) {
+          es.add({
+            type: 'danger',
+            message: 'Websocket close abnormal',
+          })
+        }
+
+        if (leaveCode.includes(ev.code)) {
           handleLeave()
           return
         }
@@ -99,7 +108,7 @@ export const useRoomStore = defineStore('room', () => {
       }
     }
 
-    if (d.gameType) {
+    if (d.gameType !== null) {
       if (data.gameType !== d.gameType) {
         data.options = undefined
         data.gameType = d.gameType
@@ -112,6 +121,8 @@ export const useRoomStore = defineStore('room', () => {
 
     if (d.gameOptions) {
       data.options = JSON.parse(d.gameOptions)
+    } else {
+      data.options = undefined
     }
 
     ready.value = true
@@ -119,6 +130,7 @@ export const useRoomStore = defineStore('room', () => {
   api.room.roomChangeCB.fn = handleLobbyChange
 
   const clear = () => {
+    console.log('clearing room')
     Object.assign(data, emptyRoom)
     users.value = emptyUsers
     ready.value = false

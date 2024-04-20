@@ -37,6 +37,7 @@ const shareLink = () => {
 }
 
 onMounted(() => {
+  room.clear()
   room.setupConnection()
 })
 </script>
