@@ -50,16 +50,6 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) (err error) {
 		return
 	}
 
-	err = SetProperty(gameId, d_bid, 0)
-	if err != nil {
-		return
-	}
-
-	err = SetProperty(gameId, d_flipper, uuid.Nil)
-	if err != nil {
-		return
-	}
-
 	players, err := db.GetRoomUserOrder(gameId)
 	if err != nil {
 		return
@@ -93,14 +83,11 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) (err error) {
 		if err != nil {
 			return
 		}
-		err = SetPlayerProperty(gameId, player, pd_tilesPlaced, []Tile{})
-		if err != nil {
-			return
-		}
-		err = SetPlayerProperty(gameId, player, pd_tilesRevealed, 0)
-		if err != nil {
-			return
-		}
+	}
+
+	err = resetRoundValues(gameId)
+	if err != nil {
+		return
 	}
 
 	c := db.GetCursor(gameId, playerType)
@@ -114,8 +101,33 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) (err error) {
 	return nil
 }
 
+type actionHandleFunc = func(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data json.RawMessage) error
+
+var actionHandlers map[Action]actionHandleFunc = map[Action]actionHandleFunc{
+	a_place: handlePlace,
+	a_bid:   handleBid,
+	a_pass:  handlePass,
+	a_flip:  handleFlip,
+}
+
 func (h *Handler) HandleAction(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID, data json.RawMessage) error {
-	return fmt.Errorf("not implemented")
+	var action ActionData
+	err := json.Unmarshal(data, &action)
+	if err != nil {
+		return err
+	}
+
+	actionFunc, ok := actionHandlers[action.Option]
+	if !ok {
+		return fmt.Errorf("unknown option")
+	}
+
+	err = actionFunc(c, gameId, playerId, action.Data)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (h *Handler) HandleReady(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error {
@@ -129,7 +141,7 @@ func (h *Handler) HandleReady(c interfaces.GameCommunication, gameId uuid.UUID, 
 	}
 
 	if len(privateGs.TilesPlaced) <= 0 {
-		c.ActionPrompt(playerId, []Action{a_initialPlace})
+		c.ActionPrompt(playerId, []Action{a_place})
 	}
 
 	c.SendPlayer(playerId, GameState{

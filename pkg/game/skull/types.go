@@ -1,6 +1,8 @@
 package skull
 
 import (
+	"encoding/json"
+
 	"github.com/Bismyth/game-server/pkg/db"
 	"github.com/google/uuid"
 )
@@ -16,11 +18,27 @@ type GameState struct {
 
 type Action string
 
-const a_initialPlace = "initialPlace"
 const a_place = "place"
 const a_bid = "bid"
 const a_pass = "pass"
 const a_flip = "flip"
+
+type ActionData struct {
+	Option Action          `json:"option"`
+	Data   json.RawMessage `json:"data"`
+}
+
+type ActionPlace struct {
+	Tile Tile `json:"tile"`
+}
+
+type ActionBid struct {
+	Bid int `json:"bid"`
+}
+
+type ActionFlip struct {
+	Player uuid.UUID `json:"player"`
+}
 
 type Tile bool
 
@@ -33,10 +51,12 @@ type PublicGameState struct {
 	TilesPlaced   map[uuid.UUID]int    `json:"tilesPlaced"`
 	TilesRevealed map[uuid.UUID][]Tile `json:"tilesRevealed"`
 	Bid           int                  `json:"bid"`
+	Passed        []uuid.UUID          `json:"passed"`
 	Points        map[uuid.UUID]int    `json:"points"`
 	Flipper       uuid.UUID            `json:"flipper"`
 	GameOver      bool                 `json:"gameOver"`
 	TurnOrder     []uuid.UUID          `json:"turnOrder"`
+	Turn          uuid.UUID            `json:"turn"`
 }
 
 type PrivateGameState struct {
@@ -51,6 +71,8 @@ type DBProperty string
 const d_bid DBProperty = "bid"
 const d_gameOver DBProperty = "gameOver"
 const d_flipper DBProperty = "flipper"
+const d_currentTurn DBProperty = "currentTurn"
+const d_passed DBProperty = "passed"
 
 func GetProperty[T any](gameId uuid.UUID, p DBProperty) (T, error) {
 	return db.GetGameProperty[T](gameId, string(p))

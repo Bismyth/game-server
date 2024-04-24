@@ -19,6 +19,10 @@ watch(
     }
   },
 )
+
+const place = () => {
+  skull.place(false)
+}
 </script>
 
 <template>
@@ -30,4 +34,6 @@ watch(
 
   <h1 class="title">Private</h1>
   <pre>{{ skull.gameData.privateState }}</pre>
+
+  <button class="button" @click="place">Place Tile</button>
 </template>

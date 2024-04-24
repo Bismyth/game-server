@@ -20,11 +20,23 @@ func cachePublicGameState(gameId uuid.UUID) error {
 	}
 	gs.Flipper = flipper
 
+	turn, err := GetProperty[uuid.UUID](gameId, d_currentTurn)
+	if err != nil {
+		return err
+	}
+	gs.Turn = turn
+
 	gameOver, err := GetProperty[bool](gameId, d_gameOver)
 	if err != nil {
 		return err
 	}
 	gs.GameOver = gameOver
+
+	passed, err := GetProperty[[]uuid.UUID](gameId, d_passed)
+	if err != nil {
+		return err
+	}
+	gs.Passed = passed
 
 	tilesPlaced := make(map[uuid.UUID]int)
 	tilesRevealed := make(map[uuid.UUID][]Tile)

@@ -7,10 +7,12 @@ const publicStateSchema = z.object({
   tilesPlaced: z.record(z.string().uuid(), z.number().int()),
   tilesRevealed: z.record(z.string().uuid(), z.array(z.boolean())),
   bid: z.number().int(),
+  passed: z.array(z.string().uuid()),
   points: z.record(z.string().uuid(), z.number().int()),
   flipper: z.string().uuid(),
   gameOver: z.boolean(),
   turnOrder: z.array(z.string()),
+  turn: z.string().uuid(),
 })
 
 type publicStateT = z.infer<typeof publicStateSchema>
@@ -64,11 +66,14 @@ const ready = () => {
 }
 
 const takeAction = (option: string, data?: any) => {
-  if (!gameData.isTurn) {
-    return
-  }
   api.game.action(option, data)
 }
+
+const place = (tile: boolean) => {
+  takeAction('place', { data: { tile } })
+}
+
+const bid = (amount: number) => {}
 
 const handleState = (data: unknown) => {
   const result = stateSchema.safeParse(data)
@@ -109,6 +114,7 @@ const handleEvent = (data: unknown) => {
 export default {
   create,
   ready,
+  place,
   gameData,
   showCall,
   showGameOver,
