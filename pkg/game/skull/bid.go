@@ -10,6 +10,7 @@ import (
 )
 
 func handleBid(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data json.RawMessage) error {
+
 	turn, err := GetProperty[uuid.UUID](gameId, d_currentTurn)
 	if err != nil {
 		return err
