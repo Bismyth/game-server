@@ -1,5 +1,6 @@
 /* eslint-disable prefer-const */
 import api from '@/api'
+import { useRoomStore } from '@/stores/room'
 import { reactive, ref } from 'vue'
 import { z } from 'zod'
 
@@ -70,12 +71,24 @@ const takeAction = (option: string, data?: any) => {
 }
 
 const place = (tile: boolean) => {
-  takeAction('place', { data: { tile } })
+  takeAction('place', { tile } )
 }
 
-const bid = (amount: number) => {}
+const bid = (amount: number) => {
+  takeAction('bid', {bid: amount})
+}
+
+const pass = () => {
+  takeAction('pass')
+}
+
+const flip = (player: string) => {
+  takeAction('flip', {player})
+}
 
 const handleState = (data: unknown) => {
+  const room = useRoomStore()
+
   const result = stateSchema.safeParse(data)
   if (!result.success) {
     //todo: better error
@@ -94,6 +107,8 @@ const handleState = (data: unknown) => {
   if (result.data.private) {
     gameData.privateState = result.data.private
   }
+
+  gameData.isTurn = result.data.public?.turn == room.data.userId
 }
 
 const handleAction = (data: unknown) => {
@@ -115,6 +130,9 @@ export default {
   create,
   ready,
   place,
+  bid,
+  pass,
+  flip,
   gameData,
   showCall,
   showGameOver,

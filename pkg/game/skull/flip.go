@@ -28,7 +28,7 @@ func handleFlip(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data
 	if !ok {
 		return fmt.Errorf("invalid target")
 	}
-	tp, err := GetPlayerProperty[[]Tile](gameId, playerId, pd_tilesPlaced)
+	tp, err := GetPlayerProperty[[]Tile](gameId, flipData.Player, pd_tilesPlaced)
 	if err != nil {
 		return fmt.Errorf("failed to fetch targets placed tiles")
 	}
@@ -36,9 +36,10 @@ func handleFlip(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data
 	if len(tr) >= len(tp) {
 		return fmt.Errorf("player has had all tiles flipped")
 	}
-	tile := tp[len(tp)-len(tr)-1]
-	tr = append(tr, tile)
-	err = SetPlayerProperty(gameId, playerId, pd_tilesRevealed, tr)
+
+	tilesRevealed := len(tr) + 1
+	tile := tp[len(tp)-tilesRevealed]
+	err = SetPlayerProperty(gameId, flipData.Player, pd_tilesRevealed, tilesRevealed)
 	if err != nil {
 		return err
 	}
@@ -73,7 +74,7 @@ func handleFlip(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data
 }
 
 func flippedSkull(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error {
-	
+
 	hand, err := GetPlayerProperty[[]Tile](gameId, playerId, pd_tiles)
 	if err != nil {
 		return err
@@ -84,7 +85,6 @@ func flippedSkull(c interfaces.GameCommunication, gameId uuid.UUID, playerId uui
 	} else {
 
 	}
-
 
 	return nil
 }
@@ -124,6 +124,11 @@ func startFlipper(c interfaces.GameCommunication, gameId uuid.UUID, playerId uui
 	}
 
 	tiles, err := GetPlayerProperty[[]Tile](gameId, playerId, pd_tilesPlaced)
+	if err != nil {
+		return err
+	}
+
+	err = SetPlayerProperty(gameId, playerId, pd_tilesRevealed, len(tiles))
 	if err != nil {
 		return err
 	}

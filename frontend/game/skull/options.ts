@@ -5,3 +5,4 @@ export const optionsSchema = z.object({
 })
 
 export type Options = z.infer<typeof optionsSchema>
+

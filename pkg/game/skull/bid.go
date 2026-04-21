@@ -59,7 +59,7 @@ func handleBid(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data 
 	if err != nil {
 		return err
 	}
-	if currentBid <= bidData.Bid {
+	if currentBid >= bidData.Bid {
 		return fmt.Errorf("must increase bid")
 	}
 

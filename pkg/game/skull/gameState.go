@@ -62,7 +62,7 @@ func cachePublicGameState(gameId uuid.UUID) error {
 		}
 		tilesRevealed[playerId] = tp[max(len(tp)-tr, 0):]
 
-		p, err := GetPlayerProperty[int](gameId, playerId, pd_tilesRevealed)
+		p, err := GetPlayerProperty[int](gameId, playerId, pd_points)
 		if err != nil {
 			return err
 		}

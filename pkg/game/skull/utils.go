@@ -139,6 +139,21 @@ func newRound(c interfaces.GameCommunication, gameId uuid.UUID) error {
 		return err
 	}
 
+	updatePublicGameState(c, gameId)
+
+	players, err := db.PlayerTypeGetAll(gameId, playerType)
+	if err != nil {
+		return err
+	}
+
+	for _, player := range players {
+		privateGs, err := getPrivateGameState(gameId, player)
+		if err != nil {
+			return err
+		}
+		c.SendPlayer(player, GameState{Private: privateGs})
+	}
+
 	return nil
 }
 
