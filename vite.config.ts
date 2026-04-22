@@ -17,6 +17,13 @@ export default defineConfig({
       '/api': 'http://localhost:8081/',
     },
   },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        silenceDeprecations: ['if-function'],
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./frontend', import.meta.url)),

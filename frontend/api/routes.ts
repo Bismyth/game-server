@@ -17,7 +17,7 @@ const routeMap: Record<IPacketType, (data: unknown) => void> = {
 }
 
 const incomingSchema = z.object({
-  type: z.nativeEnum(IPacketType),
+  type: z.enum(IPacketType),
   data: z.unknown(),
 })
 
