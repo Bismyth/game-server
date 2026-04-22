@@ -25,10 +25,6 @@ const nilUUID = '00000000-0000-0000-0000-000000000000'
 
 export const isNilUUID = (id: string) => id === nilUUID
 
-export const notImplemented = () => {
-  console.error('not implemented')
-}
-
 export const setSendMessage = (sendFn: typeof sendMessage) => {
   internalSend = sendFn
 }
@@ -37,7 +33,7 @@ export const parseData = <T extends ZodTypeAny>(data: unknown, schema: T): z.inf
   const result = schema.safeParse(data)
   if (!result.success) {
     // some error
-    console.log(result.error.errors)
+    console.log(z.treeifyError(result.error))
     throw Error('invalid data packet')
   }
 
