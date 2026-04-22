@@ -95,6 +95,14 @@ func handlePass(c interfaces.GameCommunication, gameId, playerId uuid.UUID, _ js
 		return fmt.Errorf("not your turn")
 	}
 
+	bid, err := GetProperty[int](gameId, d_bid)
+	if err != nil {
+		return err
+	}
+	if bid <= 0 {
+		return fmt.Errorf("cannot pass without a bid")
+	}
+
 	currentPassed, err := GetProperty[[]uuid.UUID](gameId, d_passed)
 	if err != nil {
 		return err

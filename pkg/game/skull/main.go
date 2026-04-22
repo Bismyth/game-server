@@ -55,7 +55,7 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) (err error) {
 		return
 	}
 
-	if len(players) < 3 {
+	if len(players) < 1 {
 		err = fmt.Errorf("not enough players")
 		return
 	}
@@ -88,6 +88,11 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) (err error) {
 	err = resetRoundValues(gameId)
 	if err != nil {
 		return
+	}
+
+	err = db.SetGameProperty(gameId, string(d_round), 1)
+	if err != nil {
+		return err
 	}
 
 	c := db.GetCursor(gameId, playerType)

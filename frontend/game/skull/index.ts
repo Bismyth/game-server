@@ -1,19 +1,20 @@
 /* eslint-disable prefer-const */
 import api from '@/api'
 import { useRoomStore } from '@/stores/room'
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { z } from 'zod'
 
 const publicStateSchema = z.object({
-  tilesPlaced: z.record(z.string().uuid(), z.number().int()),
-  tilesRevealed: z.record(z.string().uuid(), z.array(z.boolean())),
+  tilesPlaced: z.record(z.uuid(), z.number().int()),
+  tilesRevealed: z.record(z.uuid(), z.array(z.boolean())),
   bid: z.number().int(),
-  passed: z.array(z.string().uuid()),
-  points: z.record(z.string().uuid(), z.number().int()),
-  flipper: z.string().uuid(),
+  passed: z.array(z.uuid()),
+  points: z.record(z.uuid(), z.number().int()),
+  flipper: z.uuid(),
   gameOver: z.boolean(),
   turnOrder: z.array(z.string()),
-  turn: z.string().uuid(),
+  turn: z.uuid(),
+  round: z.number().int(),
 })
 
 type publicStateT = z.infer<typeof publicStateSchema>
@@ -29,6 +30,8 @@ const stateSchema = z.object({
 })
 
 type privateStateT = z.infer<typeof privateStateScehma>
+
+type fullStateT = z.infer<typeof stateSchema>
 
 const create = () => {
   api.game.handleAction.fn = handleAction
@@ -47,17 +50,21 @@ const resetValues = () => {
   gameData.currentOptions = []
 }
 
-const gameData = reactive<{
+interface GameData {
   publicState: publicStateT | undefined
   privateState: privateStateT | undefined
   isTurn: boolean
   currentOptions: string[]
-}>({
+}
+
+const gameData = reactive<GameData>({
   publicState: undefined,
   privateState: undefined,
   isTurn: false,
   currentOptions: [],
 })
+
+const newRoundData = ref<fullStateT | undefined>()
 
 const showCall = ref(false)
 const showGameOver = ref(false)
@@ -71,11 +78,11 @@ const takeAction = (option: string, data?: any) => {
 }
 
 const place = (tile: boolean) => {
-  takeAction('place', { tile } )
+  takeAction('place', { tile })
 }
 
 const bid = (amount: number) => {
-  takeAction('bid', {bid: amount})
+  takeAction('bid', { bid: amount })
 }
 
 const pass = () => {
@@ -83,7 +90,7 @@ const pass = () => {
 }
 
 const flip = (player: string) => {
-  takeAction('flip', {player})
+  takeAction('flip', { player })
 }
 
 const handleState = (data: unknown) => {
@@ -102,7 +109,11 @@ const handleState = (data: unknown) => {
   }
 
   if (result.data.public) {
-    gameData.publicState = result.data.public
+    if (result.data.public.round > 1 && result.data.public.round !== gameData.publicState?.round) {
+      newRoundData.value = result.data
+    } else {
+      gameData.publicState = result.data.public
+    }
   }
   if (result.data.private) {
     gameData.privateState = result.data.private
@@ -110,6 +121,25 @@ const handleState = (data: unknown) => {
 
   gameData.isTurn = result.data.public?.turn == room.data.userId
 }
+
+const nextRound = () => {
+  console.log(hasNextRound.value)
+  console.log(newRoundData.value)
+  if (newRoundData.value === undefined) {
+    return
+  }
+
+  if (newRoundData.value.public) {
+    gameData.publicState = newRoundData.value.public
+  }
+  if (newRoundData.value.private) {
+    gameData.privateState = newRoundData.value.private
+  }
+
+  newRoundData.value = undefined
+}
+
+const hasNextRound = computed(() => newRoundData.value !== undefined)
 
 const handleAction = (data: unknown) => {
   const result = z.array(z.string()).safeParse(data)
@@ -126,6 +156,28 @@ const handleEvent = (data: unknown) => {
   console.log(data)
 }
 
+const currentHand = computed(() => {
+  const totalTiles = gameData.privateState?.tiles ?? []
+  const placedTiles = gameData.privateState?.tilesPlaced ?? []
+
+  const hasSkull = totalTiles.includes(true)
+  const placedSkull = placedTiles.includes(true)
+
+  const cHand = []
+
+  if (hasSkull && !placedSkull) {
+    cHand.push(true)
+  }
+  const restSize = totalTiles.length - placedTiles.length - cHand.length
+  for (let x = 0; x < restSize; x++) {
+    cHand.push(false)
+  }
+
+  console.log(totalTiles, placedTiles, cHand)
+
+  return cHand
+})
+
 export default {
   create,
   ready,
@@ -136,4 +188,7 @@ export default {
   gameData,
   showCall,
   showGameOver,
+  currentHand,
+  nextRound,
+  hasNextRound,
 }

@@ -134,6 +134,15 @@ func newRound(c interfaces.GameCommunication, gameId uuid.UUID) error {
 	if err != nil {
 		return err
 	}
+	round, err := GetProperty[int](gameId, d_round)
+	if err != nil {
+		return err
+	}
+	err = SetProperty(gameId, d_round, round+1)
+	if err != nil {
+		return err
+	}
+
 	err = resetRoundValues(gameId)
 	if err != nil {
 		return err

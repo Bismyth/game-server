@@ -32,6 +32,12 @@ func cachePublicGameState(gameId uuid.UUID) error {
 	}
 	gs.GameOver = gameOver
 
+	round, err := GetProperty[int](gameId, d_round)
+	if err != nil {
+		return err
+	}
+	gs.Round = round
+
 	passed, err := GetProperty[[]uuid.UUID](gameId, d_passed)
 	if err != nil {
 		return err

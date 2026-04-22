@@ -44,6 +44,11 @@ func handleFlip(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data
 		return err
 	}
 
+	err = updatePublicGameState(c, gameId)
+	if err != nil {
+		return err
+	}
+
 	if tile == Skull {
 		err = flippedSkull(c, gameId, playerId)
 		if err != nil {
@@ -63,11 +68,6 @@ func handleFlip(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data
 			return err
 		}
 		return nil
-	}
-
-	err = updatePublicGameState(c, gameId)
-	if err != nil {
-		return err
 	}
 
 	return nil

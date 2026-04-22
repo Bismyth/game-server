@@ -10,13 +10,11 @@ import { useRoomStore } from '@/stores/room'
 import { Icon } from '@iconify/vue'
 import CallModal from './CallModal.vue'
 import EndGame from './EndGame.vue'
-import { useRouter } from 'vue-router'
 import RulesPage from './RulesPage.vue'
 import RoomName from '@/components/RoomName.vue'
+import { handleLobbyBack } from '@/game'
 
 const room = useRoomStore()
-
-const router = useRouter()
 
 onMounted(async () => {
   ld.create()
@@ -75,10 +73,6 @@ const handleCallScreenClose = () => {
 
 const handleGameOverClose = () => {
   ld.showGameOver.value = false
-}
-
-const handleLobbyBack = () => {
-  router.replace({ name: 'room', params: { id: room.data.id } })
 }
 </script>
 
