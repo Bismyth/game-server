@@ -5,9 +5,14 @@ export const gameTypes = ['liarsdice', 'skull'] as const
 
 export type GameTypes = (typeof gameTypes)[number]
 
-export const gameTypeLabels: { [k in GameTypes]: string } = {
-  liarsdice: 'Liars Dice',
-  skull: 'Skull',
+interface GameInfo {
+  displayName: string
+  icon: string
+}
+
+export const gameTypeLabels: { [k in GameTypes]: GameInfo } = {
+  liarsdice: {displayName: 'Liars Dice', icon: 'bi:dice-2-fill'},
+  skull: {displayName: 'Skull', icon: 'mdi:skull'},
 }
 
 export const handleLobbyBack = () => {

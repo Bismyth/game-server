@@ -75,7 +75,7 @@ onMounted(() => {
                 <div class="mb-3">
                   <span class="has-text-weight-semibold">Game Type: </span>
                   {{
-                    room.data.gameType === '' ? 'Not Selected' : gameTypeLabels[room.data.gameType]
+                    room.data.gameType === '' ? 'Not Selected' : gameTypeLabels[room.data.gameType].displayName
                   }}
                 </div>
                 <div v-if="room.data.gameType !== ''">
