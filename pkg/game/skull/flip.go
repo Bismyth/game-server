@@ -151,17 +151,17 @@ func startFlipper(c interfaces.GameCommunication, gameId uuid.UUID, playerId uui
 		return err
 	}
 
+	err = updatePublicGameState(c, gameId)
+	if err != nil {
+		return err
+	}
+
 	if currentBid <= roses {
 		err = flippedBid(c, gameId, playerId)
 		if err != nil {
 			return err
 		}
 		return nil
-	}
-
-	err = updatePublicGameState(c, gameId)
-	if err != nil {
-		return err
 	}
 
 	return nil

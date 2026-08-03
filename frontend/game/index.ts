@@ -1,5 +1,5 @@
 import { useRoomStore } from '@/stores/room'
-import { useRouter } from 'vue-router'
+import router from '@/router'
 
 export const gameTypes = ['liarsdice', 'skull'] as const
 
@@ -17,6 +17,5 @@ export const gameTypeLabels: { [k in GameTypes]: GameInfo } = {
 
 export const handleLobbyBack = () => {
   const room = useRoomStore()
-  const router = useRouter()
   router.replace({ name: 'room', params: { id: room.data.id } })
 }

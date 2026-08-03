@@ -43,7 +43,6 @@ const pass = () => {
 }
 
 const flip = (sP: string) => {
-  console.log('flipping', sP)
   skull.flip(sP)
 }
 
@@ -105,12 +104,6 @@ const hTile = (v: boolean) => {
               </div>
             </div>
           </div>
-          <!-- <h4 class="title is-5">Out</h4>
-          <div>
-            <div v-for="id in outPlayers" :key="id">
-              <RoomName :id="id" kick />
-            </div>
-          </div> -->
         </div>
         <div class="box is-5">
           <div v-for="id in skull.gameData.publicState?.turnOrder">
@@ -125,16 +118,23 @@ const hTile = (v: boolean) => {
             />
           </div>
 
+          <div v-show="skull.gameData.showMessage">
+            {{ skull.gameData.message }}
+          </div>
+
           <span>Current Hand</span>
           <TileHand :true-value="skull.currentHand.value" hand @select-tile="hTile" />
           <div class="is-flex mt-4">
-            <p class="control">
-              <input class="input" v-model="bid" />
-            </p>
+            <div v-if="skull.gameData.showBid" class="is-flex">
+              <p class="control">
+                <input class="input" v-model="bid" />
+              </p>
 
-            <button class="button" @click="makeBid">Bid</button>
-
-            <button class="button" @click="pass">Pass</button>
+              <button class="button" @click="makeBid">Bid</button>
+            </div>
+            <div v-if="skull.gameData.showPass">
+              <button class="button" @click="pass">Pass</button>
+            </div>
           </div>
           <button class="button" v-show="skull.hasNextRound.value" @click="skull.nextRound">
             Next Round

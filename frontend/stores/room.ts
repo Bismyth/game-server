@@ -130,7 +130,6 @@ export const useRoomStore = defineStore('room', () => {
   api.room.roomChangeCB.fn = handleLobbyChange
 
   const clear = () => {
-    console.log('clearing room')
     Object.assign(data, emptyRoom)
     users.value = emptyUsers
     ready.value = false

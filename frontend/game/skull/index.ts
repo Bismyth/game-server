@@ -53,14 +53,20 @@ const resetValues = () => {
 interface GameData {
   publicState: publicStateT | undefined
   privateState: privateStateT | undefined
-  isTurn: boolean
+  showMessage: boolean
+  message: string
+  showBid: boolean
+  showPass: boolean
   currentOptions: string[]
 }
 
 const gameData = reactive<GameData>({
   publicState: undefined,
   privateState: undefined,
-  isTurn: false,
+  showMessage: false,
+  message: "Current Message",
+  showBid: false,
+  showPass: false,
   currentOptions: [],
 })
 
@@ -107,9 +113,8 @@ const handleState = (data: unknown) => {
   if (result.data.public?.gameOver && !showGameOver.value) {
     showGameOver.value = true
   }
-
   if (result.data.public) {
-    if (result.data.public.round > 1 && result.data.public.round !== gameData.publicState?.round) {
+    if (gameData.publicState !== undefined && result.data.public.round > 1 && result.data.public.round !== gameData.publicState?.round) {
       newRoundData.value = result.data
     } else {
       gameData.publicState = result.data.public
@@ -119,12 +124,38 @@ const handleState = (data: unknown) => {
     gameData.privateState = result.data.private
   }
 
-  gameData.isTurn = result.data.public?.turn == room.data.userId
+  // Current User Action
+  if (gameData.publicState?.tilesPlaced[room.data.userId] == 0) {
+    gameData.showMessage = true
+    gameData.message = "Place your inital Tile"
+  } else if (gameData.publicState?.flipper == room.data.userId) {
+    const total = gameData.publicState.bid
+  
+    let flipped = 0
+    for (const p in gameData.publicState.tilesRevealed) {
+      flipped += gameData.publicState.tilesRevealed[p].length
+    }
+    gameData.showMessage = true
+    gameData.message = `Flip ${total} roses. Don't Flip a Skull! Roses: ${flipped}/${total}`
+    gameData.showBid = false
+    gameData.showPass = false
+}else if (gameData.publicState?.turn == room.data.userId) {
+    gameData.showMessage = true
+    gameData.showBid = true
+    if (gameData.publicState.bid == 0) {
+      gameData.message = "Place a tile or start the bidding"
+    } else {
+      gameData.message = "Raise the bid or pass"
+      gameData.showPass = true
+    }
+  } else {
+    gameData.showMessage = false
+    gameData.showBid = false
+    gameData.showPass = false
+  }
 }
 
 const nextRound = () => {
-  console.log(hasNextRound.value)
-  console.log(newRoundData.value)
   if (newRoundData.value === undefined) {
     return
   }
@@ -149,7 +180,7 @@ const handleAction = (data: unknown) => {
     return
   }
   gameData.currentOptions = result.data
-  gameData.isTurn = true
+  gameData.showMessage = true
 }
 
 const handleEvent = (data: unknown) => {
@@ -173,10 +204,11 @@ const currentHand = computed(() => {
     cHand.push(false)
   }
 
-  console.log(totalTiles, placedTiles, cHand)
-
   return cHand
 })
+
+
+
 
 export default {
   create,
