@@ -238,6 +238,7 @@ const currentHand = computed(() => {
   if (hasSkull && !placedSkull) {
     cHand.push(true)
   }
+  
   const restSize = totalTiles.length - placedTiles.length - cHand.length
   for (let x = 0; x < restSize; x++) {
     cHand.push(false)
