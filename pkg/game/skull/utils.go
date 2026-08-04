@@ -205,6 +205,32 @@ func resetRoundValues(gameId uuid.UUID) error {
 	return nil
 }
 
-func endGame(gameId uuid.UUID) error {
-	return fmt.Errorf("not implemented")
+func endGame(c interfaces.GameCommunication, gameId uuid.UUID) error {
+	err := SetProperty(gameId, d_gameOver, true)
+	if err != nil {
+		return err
+	}
+
+	err = cachePublicGameState(gameId)
+	if err != nil {
+		return err
+	}
+
+	c.EndGame()
+
+	pGs, err := getPublicGameState(gameId)
+	if err != nil {
+		return err
+	}
+
+	c.SendGlobal(GameState{
+		Public: pGs,
+	})
+
+	err = cleanup(gameId)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -27,7 +27,7 @@ const showedHand = computed<[boolean, boolean][]>(() => {
         if (!show) {
           o.push([false, false])
         } else {
-          o.push([true, props.trueValue[i - props.trueValue.length]])
+          o.push([true, props.trueValue[i - (props.size - props.trueValue.length)]])
         }
       }
     }

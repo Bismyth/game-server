@@ -53,20 +53,12 @@ const resetValues = () => {
 interface GameData {
   publicState: publicStateT | undefined
   privateState: privateStateT | undefined
-  showMessage: boolean
-  message: string
-  showBid: boolean
-  showPass: boolean
   currentOptions: string[]
 }
 
 const gameData = reactive<GameData>({
   publicState: undefined,
   privateState: undefined,
-  showMessage: false,
-  message: "Current Message",
-  showBid: false,
-  showPass: false,
   currentOptions: [],
 })
 
@@ -125,35 +117,83 @@ const handleState = (data: unknown) => {
   }
 
   // Current User Action
-  if (gameData.publicState?.tilesPlaced[room.data.userId] == 0) {
-    gameData.showMessage = true
-    gameData.message = "Place your inital Tile"
-  } else if (gameData.publicState?.flipper == room.data.userId) {
-    const total = gameData.publicState.bid
+
+}
+
+const userActions = computed(() => {
+  const room = useRoomStore()
+  const data = {
+    showMessage: false,
+    message: '',
+    showBid: false,
+    showPass: false,
+  }
+
+    if (gameData.publicState?.tilesPlaced[room.data.userId] == 0) {
+    data.showMessage = true
+    data.message = "Place your inital tile"
+  } else if (hasNextRound.value) {
+    let flipped = 0
+    for (const p in gameData.publicState?.tilesRevealed) {
+      flipped += gameData.publicState?.tilesRevealed[p].length
+    }
+
+
+    let message = ``
+
+    if (gameData.publicState?.flipper == room.data.userId) {
+      message += 'You'
+    } else {
+      message += `${room.users.names[gameData.publicState?.flipper ?? '']}`
+    }
+
+    let flippedSkull = false
+    for (const p in gameData.publicState?.tilesRevealed) {
+      for (const t of gameData.publicState.tilesRevealed[p]) {
+        if (t) {
+          flippedSkull = true
+          break
+        }
+      }
+    }
+
+    if (flippedSkull) {
+      message += ' flipped a skull!'
+    } else {
+      message += ` flipped all ${gameData.publicState?.bid} roses`
+    }
+    data.showMessage = true
+    data.message = message
+
+  } else if (gameData.publicState?.flipper != '00000000-0000-0000-0000-000000000000') {
+    const total = gameData.publicState?.bid
   
     let flipped = 0
-    for (const p in gameData.publicState.tilesRevealed) {
+    for (const p in gameData.publicState?.tilesRevealed) {
       flipped += gameData.publicState.tilesRevealed[p].length
     }
-    gameData.showMessage = true
-    gameData.message = `Flip ${total} roses. Don't Flip a Skull! Roses: ${flipped}/${total}`
-    gameData.showBid = false
-    gameData.showPass = false
-}else if (gameData.publicState?.turn == room.data.userId) {
-    gameData.showMessage = true
-    gameData.showBid = true
-    if (gameData.publicState.bid == 0) {
-      gameData.message = "Place a tile or start the bidding"
+    data.showMessage = true
+
+    if (gameData.publicState?.flipper == room.data.userId) {
+      data.message = `Flip ${total} roses. Don't Flip a Skull! Roses: ${flipped}/${total}`
     } else {
-      gameData.message = "Raise the bid or pass"
-      gameData.showPass = true
+      data.message = `${room.users.names[gameData.publicState?.flipper ?? '']} needs to flip ${total} roses. ${flipped}/${total}`
     }
-  } else {
-    gameData.showMessage = false
-    gameData.showBid = false
-    gameData.showPass = false
+
+  } else if (gameData.publicState?.turn == room.data.userId) {
+    data.showMessage = true
+    data.showBid = true
+    if (gameData.publicState.bid == 0) {
+      data.message = "Place a tile or start the bidding"
+    } else {
+      data.message = "Raise the bid or pass"
+      data.showPass = true
+    }
   }
-}
+  return data
+})
+
+
 
 const nextRound = () => {
   if (newRoundData.value === undefined) {
@@ -180,7 +220,6 @@ const handleAction = (data: unknown) => {
     return
   }
   gameData.currentOptions = result.data
-  gameData.showMessage = true
 }
 
 const handleEvent = (data: unknown) => {
@@ -209,6 +248,11 @@ const currentHand = computed(() => {
 
 
 
+const canFlip = (id: string): boolean => {
+  return (gameData.publicState?.tilesPlaced[id] ?? 0) > (gameData.publicState?.tilesRevealed[id].length ?? 0)
+}
+
+
 
 export default {
   create,
@@ -223,4 +267,6 @@ export default {
   currentHand,
   nextRound,
   hasNextRound,
+  canFlip,
+  userActions
 }

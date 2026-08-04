@@ -44,11 +44,6 @@ func handleFlip(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data
 		return err
 	}
 
-	err = updatePublicGameState(c, gameId)
-	if err != nil {
-		return err
-	}
-
 	if tile == Skull {
 		err = flippedSkull(c, gameId, playerId)
 		if err != nil {
@@ -70,6 +65,11 @@ func handleFlip(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data
 		return nil
 	}
 
+	err = updatePublicGameState(c, gameId)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -80,16 +80,29 @@ func flippedSkull(c interfaces.GameCommunication, gameId uuid.UUID, playerId uui
 		return err
 	}
 
+	err = updatePublicGameState(c, gameId)
+	if err != nil {
+		return err
+	}
+
 	if len(hand) <= 1 {
 		// make player out
-	} else {
+	}
 
+	err = newRound(c, gameId)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
 func flippedBid(c interfaces.GameCommunication, gameId, playerId uuid.UUID) error {
+	err := updatePublicGameState(c, gameId)
+	if err != nil {
+		return err
+	}
+
 	currentPoints, err := GetPlayerProperty[int](gameId, playerId, pd_points)
 	if err != nil {
 		return err
@@ -102,7 +115,7 @@ func flippedBid(c interfaces.GameCommunication, gameId, playerId uuid.UUID) erro
 	}
 
 	if newPoints >= 2 {
-		err = endGame(gameId)
+		err = endGame(c, gameId)
 		if err != nil {
 			return err
 		}
@@ -133,9 +146,15 @@ func startFlipper(c interfaces.GameCommunication, gameId uuid.UUID, playerId uui
 		return err
 	}
 
+	bid, err := GetProperty[int](gameId, d_bid)
+	if err != nil {
+		return err
+	}
+
 	roses := 0
-	for _, t := range tiles {
-		if t == Skull {
+
+	for i := len(tiles) - 1; i >= 0; i-- {
+		if tiles[i] == Skull {
 			err = flippedSkull(c, gameId, playerId)
 			if err != nil {
 				return err
@@ -143,6 +162,13 @@ func startFlipper(c interfaces.GameCommunication, gameId uuid.UUID, playerId uui
 			return nil
 		} else {
 			roses += 1
+			if roses >= bid {
+				err = SetPlayerProperty(gameId, playerId, pd_tilesRevealed, len(tiles)-i)
+				if err != nil {
+					return err
+				}
+				flippedBid(c, gameId, playerId)
+			}
 		}
 	}
 

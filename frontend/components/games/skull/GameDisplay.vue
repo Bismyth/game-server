@@ -86,57 +86,68 @@ const hTile = (v: boolean) => {
         <div class="box mb-0 is-1">
           <h4 class="title is-5">Players</h4>
           <div class="mb-4">
-            <div
-              v-for="id in skull.gameData.publicState?.turnOrder"
-              :key="id"
-              class="is-flex is-justify-content-space-between"
-            >
-              <div>
-                <span class="icon-text">
-                  <span class="icon">
-                    <Icon
-                      icon="fa6-solid:arrow-right"
-                      v-if="id == skull.gameData.publicState?.turn"
-                    />
-                  </span>
-                  <RoomName :id="id" kick />
-                </span>
-              </div>
-            </div>
+            <table class="table is-fullwidth">
+              <thead>
+                <tr>
+                  <th :style="{ width: '2px' }"></th>
+                  <th>Name</th>
+                  <th :style="{ width: '40px' }">Pts</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="id in skull.gameData.publicState?.turnOrder" :key="id">
+                  <td>
+                    <span class="icon">
+                      <Icon
+                        icon="fa6-solid:arrow-right"
+                        v-if="id == skull.gameData.publicState?.turn"
+                      />
+                    </span>
+                  </td>
+                  <td><RoomName :id="id" kick /></td>
+                  <td>{{ skull.gameData.publicState?.points[id] }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
         <div class="box is-5">
-          <div v-for="id in skull.gameData.publicState?.turnOrder">
-            <RoomName :id="id" />
-
-            <TileHand
-              :true-value="skull.gameData.publicState?.tilesRevealed[id]"
-              :size="skull.gameData.publicState?.tilesPlaced[id]"
-              placed
-              :clickable="skull.gameData.publicState?.flipper == room.data.userId"
-              @select-hand="flip(id)"
-            />
+          <div v-if="skull.userActions.value.showMessage" class="is-flex mb-3 is-size-4">
+            {{ skull.userActions.value.message }}
           </div>
+          <div class="mb-4">
+            <div v-for="id in skull.gameData.publicState?.turnOrder" class="mb-1">
+              <RoomName :id="id" />
 
-          <div v-show="skull.gameData.showMessage">
-            {{ skull.gameData.message }}
+              <TileHand
+                :true-value="skull.gameData.publicState?.tilesRevealed[id]"
+                :size="skull.gameData.publicState?.tilesPlaced[id]"
+                placed
+                :clickable="
+                  skull.gameData.publicState?.flipper == room.data.userId &&
+                  skull.canFlip(id) &&
+                  !skull.hasNextRound.value
+                "
+                @select-hand="flip(id)"
+              />
+            </div>
           </div>
 
           <span>Current Hand</span>
           <TileHand :true-value="skull.currentHand.value" hand @select-tile="hTile" />
           <div class="is-flex mt-4">
-            <div v-if="skull.gameData.showBid" class="is-flex">
+            <div v-if="skull.userActions.value.showBid" class="is-flex">
               <p class="control">
                 <input class="input" v-model="bid" />
               </p>
 
               <button class="button" @click="makeBid">Bid</button>
             </div>
-            <div v-if="skull.gameData.showPass">
+            <div v-if="skull.userActions.value.showPass">
               <button class="button" @click="pass">Pass</button>
             </div>
           </div>
-          <button class="button" v-show="skull.hasNextRound.value" @click="skull.nextRound">
+          <button class="button" v-if="skull.hasNextRound.value" @click="skull.nextRound">
             Next Round
           </button>
         </div>
