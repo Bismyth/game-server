@@ -51,7 +51,7 @@ const onOpen = () => {
     <IconButton @click="onOpen" icon="fa6-solid:screwdriver-wrench" label="Options" />
     <ModalWrap
       :shown="showGameOptions"
-      :title="`${gameTypeLabels[room.data.gameType]} Options`"
+      :title="`${gameTypeLabels[room.data.gameType].displayName} Options`"
       @close="onClose"
     >
       <template #body>
