@@ -60,8 +60,14 @@ func cachePublicGameState(gameId uuid.UUID) error {
 	}
 
 	gs.TurnOrder = players
-
+	tileCount := make(map[uuid.UUID]int)
 	for _, playerId := range players {
+		t, err := GetPlayerProperty[[]Tile](gameId, playerId, pd_tiles)
+		if err != nil {
+			return err
+		}
+		tileCount[playerId] = len(t)
+
 		tp, err := GetPlayerProperty[[]Tile](gameId, playerId, pd_tilesPlaced)
 		if err != nil {
 			return err
@@ -83,6 +89,7 @@ func cachePublicGameState(gameId uuid.UUID) error {
 	gs.TilesPlaced = tilesPlaced
 	gs.TilesRevealed = tilesRevealed
 	gs.Points = points
+	gs.TileCount = tileCount
 
 	err = db.SetGameCache(gameId, gs)
 	if err != nil {

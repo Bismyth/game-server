@@ -55,12 +55,12 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) (err error) {
 		return
 	}
 
-	if len(players) < 1 {
+	if len(players) < 2 {
 		err = fmt.Errorf("not enough players")
 		return
 	}
 
-	if len(players) > 6 {
+	if len(players) > 7 {
 		err = fmt.Errorf("too many players")
 		return
 	}

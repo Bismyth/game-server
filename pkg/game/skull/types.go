@@ -50,6 +50,7 @@ var startingHand []Tile = []Tile{Rose, Rose, Rose, Skull}
 type PublicGameState struct {
 	TilesPlaced   map[uuid.UUID]int    `json:"tilesPlaced"`
 	TilesRevealed map[uuid.UUID][]Tile `json:"tilesRevealed"`
+	TileCount     map[uuid.UUID]int    `json:"tileCount"`
 	Bid           int                  `json:"bid"`
 	Passed        []uuid.UUID          `json:"passed"`
 	Points        map[uuid.UUID]int    `json:"points"`

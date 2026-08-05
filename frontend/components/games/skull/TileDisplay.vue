@@ -9,8 +9,12 @@ defineProps<{
 
 <template>
   <div class="game-tile">
-    <div v-show="show" class="tile-icon">
-      <Icon :icon="`mdi:${skull ? 'skull' : 'flower-poppy'}`" height="100%" width="100%" />
+    <div class="tile-icon">
+      <Icon
+        :icon="`mdi:${skull ? 'skull' : show ? 'flower-poppy' : 'help'}`"
+        height="100%"
+        width="100%"
+      />
     </div>
   </div>
 </template>

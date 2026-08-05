@@ -47,7 +47,7 @@ func handleFlip(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data
 	}
 
 	if tile == Skull {
-		err = flippedSkull(c, gameId, playerId)
+		err = flippedSkull(c, gameId, playerId, flipData.Player)
 		if err != nil {
 			return err
 		}
@@ -75,7 +75,7 @@ func handleFlip(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data
 	return nil
 }
 
-func flippedSkull(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error {
+func flippedSkull(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID, target uuid.UUID) error {
 
 	hand, err := GetPlayerProperty[[]Tile](gameId, playerId, pd_tiles)
 	if err != nil {
@@ -104,6 +104,12 @@ func flippedSkull(c interfaces.GameCommunication, gameId uuid.UUID, playerId uui
 		if err != nil {
 			return err
 		}
+	}
+
+	cursor := db.GetCursor(gameId, playerType)
+	err = cursor.SeekIndex(target)
+	if err != nil {
+		return err
 	}
 
 	err = newRound(c, gameId)
@@ -171,6 +177,15 @@ func flippedBid(c interfaces.GameCommunication, gameId, playerId uuid.UUID) erro
 		}
 		return nil
 	}
+	cursor := db.GetCursor(gameId, playerType)
+	err = cursor.SeekIndex(playerId)
+	if err != nil {
+		return err
+	}
+	_, err = cursor.Next()
+	if err != nil {
+		return err
+	}
 
 	err = newRound(c, gameId)
 	if err != nil {
@@ -205,7 +220,7 @@ func startFlipper(c interfaces.GameCommunication, gameId uuid.UUID, playerId uui
 
 	for i := len(tiles) - 1; i >= 0; i-- {
 		if tiles[i] == Skull {
-			err = flippedSkull(c, gameId, playerId)
+			err = flippedSkull(c, gameId, playerId, playerId)
 			if err != nil {
 				return err
 			}

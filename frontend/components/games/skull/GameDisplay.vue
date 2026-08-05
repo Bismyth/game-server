@@ -2,7 +2,7 @@
 import ErrorStore from '@/components/ErrorStore.vue'
 import skull from '@/game/skull'
 import { useRoomStore } from '@/stores/room'
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, ref, watch, computed } from 'vue'
 import { handleLobbyBack } from '@/game'
 import RulesPage from './RulesPage.vue'
 import IconButton from '@/components/IconButton.vue'
@@ -30,6 +30,16 @@ const makeBid = () => {
   skull.bid(parseInt(bid.value))
   bid.value = ''
 }
+
+const outPlayers = computed(() => {
+  const ids: string[] = []
+  for (const k of room.users.order) {
+    if (!skull.gameData.publicState?.turnOrder.includes(k)) {
+      ids.push(k)
+    }
+  }
+  return ids
+})
 
 const pass = () => {
   skull.pass()
@@ -78,6 +88,7 @@ const hTile = (v: boolean) => {
                 <tr>
                   <th :style="{ width: '2px' }"></th>
                   <th>Name</th>
+                  <th :style="{ width: '40px' }">Hand</th>
                   <th :style="{ width: '40px' }">Pts</th>
                 </tr>
               </thead>
@@ -86,16 +97,28 @@ const hTile = (v: boolean) => {
                   <td>
                     <span class="icon">
                       <Icon
-                        icon="fa6-solid:arrow-right"
-                        v-if="id == skull.gameData.publicState?.turn"
+                        icon="fa6-solid:star"
+                        v-if="id == skull.gameData.publicState?.flipper"
                       />
+                      <Icon
+                        icon="fa6-solid:arrow-right"
+                        v-else-if="id == skull.gameData.publicState?.turn"
+                      />
+                      <Icon icon="fa6-solid:x" v-else-if="skull.passed(id)" />
                     </span>
                   </td>
                   <td><RoomName :id="id" kick /></td>
+                  <td>{{ skull.gameData.publicState?.tileCount[id] }}</td>
                   <td>{{ skull.gameData.publicState?.points[id] }}</td>
                 </tr>
               </tbody>
             </table>
+          </div>
+          <h4 class="title is-5">Out</h4>
+          <div>
+            <div v-for="id in outPlayers" :key="id">
+              <RoomName :id="id" kick />
+            </div>
           </div>
         </div>
         <div class="box is-5">
@@ -128,10 +151,10 @@ const hTile = (v: boolean) => {
                 <input class="input" v-model="bid" />
               </p>
 
-              <button class="button" @click="makeBid">Bid</button>
+              <button class="button is-primary" @click="makeBid">Bid</button>
             </div>
             <div v-if="skull.userActions.value.showPass">
-              <button class="button" @click="pass">Pass</button>
+              <button class="button is-primary" @click="pass">Pass</button>
             </div>
           </div>
           <button class="button" v-if="skull.hasNextRound.value" @click="skull.nextRound">
