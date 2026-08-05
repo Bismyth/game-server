@@ -3,7 +3,6 @@ import ErrorStore from '@/components/ErrorStore.vue'
 import skull from '@/game/skull'
 import { useRoomStore } from '@/stores/room'
 import { onMounted, ref, watch } from 'vue'
-import TileDisplay from './TileDisplay.vue'
 import { handleLobbyBack } from '@/game'
 import RulesPage from './RulesPage.vue'
 import IconButton from '@/components/IconButton.vue'
@@ -25,21 +24,16 @@ watch(
     }
   },
 )
-
-const place = () => {
-  skull.place(tilePlace.value)
-}
-
 const bid = ref('')
-
-const tilePlace = ref(false)
 
 const makeBid = () => {
   skull.bid(parseInt(bid.value))
+  bid.value = ''
 }
 
 const pass = () => {
   skull.pass()
+  bid.value = ''
 }
 
 const flip = (sP: string) => {
@@ -73,14 +67,7 @@ const hTile = (v: boolean) => {
             </div>
           </div>
         </div>
-        <div class="outer">
-          <!-- <IconButton
-            icon="fa6-solid:clock-rotate-left"
-            @click="showCall"
-            label="Previous Round"
-            v-if="(ld.gameData.publicState?.previousRound.round ?? 0) != 0"
-          /> -->
-        </div>
+        <div class="outer"></div>
       </div>
       <div class="body-wrapper">
         <div class="box mb-0 is-1">

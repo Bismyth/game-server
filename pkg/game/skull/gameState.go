@@ -102,6 +102,10 @@ func getPublicGameState(gameId uuid.UUID) (*PublicGameState, error) {
 }
 
 func getPrivateGameState(gameId uuid.UUID, playerId uuid.UUID) (*PrivateGameState, error) {
+	if !db.PlayerIsType(gameId, playerId, playerType) {
+		return nil, nil
+	}
+
 	ps := PrivateGameState{}
 
 	tp, err := GetPlayerProperty[[]Tile](gameId, playerId, pd_tilesPlaced)

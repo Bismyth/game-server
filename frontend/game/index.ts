@@ -12,7 +12,7 @@ interface GameInfo {
 
 export const gameTypeLabels: { [k in GameTypes]: GameInfo } = {
   liarsdice: {displayName: 'Liars Dice', icon: 'bi:dice-2-fill'},
-  skull: {displayName: 'Skull', icon: 'mdi:skull'},
+  skull: {displayName: 'Skull (Beta)', icon: 'mdi:skull'},
 }
 
 export const handleLobbyBack = () => {

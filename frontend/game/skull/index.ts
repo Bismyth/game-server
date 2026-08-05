@@ -131,7 +131,22 @@ const userActions = computed(() => {
   }
   if (gameData.publicState?.gameOver) {
     data.showMessage = true
-    data.message = "The Game is Over!"
+    let winner = "No one"
+    const players = gameData.publicState.turnOrder
+
+    if (players.length == 1) {
+      winner = room.users.names[players[0]]
+    } else if (players.length > 1) {
+      let highest = 0
+      for (const p of players) {
+        const points = gameData.publicState.points[p]
+        if (points > highest) {
+          winner = room.users.names[p]
+          highest = points
+        }
+      }
+    }
+    data.message = `The Game is Over! ${winner} has won!`
   }
   else if (hasNextRound.value) {
     if (gameData.publicState?.playerLeft) {
@@ -170,10 +185,6 @@ const userActions = computed(() => {
     data.showMessage = true
     data.message = message
     }
-
-
-    
-
   }
     else if (gameData.publicState?.tilesPlaced[room.data.userId] == 0) {
     data.showMessage = true
@@ -199,7 +210,7 @@ const userActions = computed(() => {
     if (gameData.publicState.bid == 0) {
       data.message = "Place a tile or start the bidding"
     } else {
-      data.message = "Raise the bid or pass"
+      data.message = `Raise the bid or pass. Current Bid: ${gameData.publicState.bid}`
       data.showPass = true
     }
   }

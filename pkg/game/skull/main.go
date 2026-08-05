@@ -145,7 +145,7 @@ func (h *Handler) HandleReady(c interfaces.GameCommunication, gameId uuid.UUID, 
 		return err
 	}
 
-	if len(privateGs.TilesPlaced) <= 0 {
+	if privateGs != nil && len(privateGs.TilesPlaced) <= 0 {
 		c.ActionPrompt(playerId, []Action{a_place})
 	}
 

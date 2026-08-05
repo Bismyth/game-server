@@ -217,27 +217,14 @@ func startFlipper(c interfaces.GameCommunication, gameId uuid.UUID, playerId uui
 				if err != nil {
 					return err
 				}
-				flippedBid(c, gameId, playerId)
+				return flippedBid(c, gameId, playerId)
 			}
 		}
-	}
-
-	currentBid, err := GetProperty[int](gameId, d_bid)
-	if err != nil {
-		return err
 	}
 
 	err = updatePublicGameState(c, gameId)
 	if err != nil {
 		return err
-	}
-
-	if currentBid <= roses {
-		err = flippedBid(c, gameId, playerId)
-		if err != nil {
-			return err
-		}
-		return nil
 	}
 
 	return nil

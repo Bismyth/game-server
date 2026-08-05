@@ -20,12 +20,10 @@ const submit = (data: FormResult) => {
   showOptions.value = false
 }
 
-
 const selectGame = (v: GameTypes) => {
-  api.room.change({gameType: v})
+  api.room.change({ gameType: v })
   showOptions.value = false
 }
-
 
 const showOptions = ref(false)
 const onClose = () => {
@@ -35,14 +33,13 @@ const onClose = () => {
 const openModal = () => {
   showOptions.value = true
 }
-
 </script>
 
 <template>
   <IconButton @click="openModal" icon="fa6-solid:pencil" label="Edit" />
   <ModalWrap :shown="showOptions" title="Lobby Options" @close="onClose">
     <template #body>
-      <div class="boxes">
+      <div class="boxes is-gap-1">
         <div class="box s-box" v-for="(value, key) in gameTypeLabels" :key="key">
           <Icon :icon="value.icon" />
           <span>{{ value.displayName }}</span>
