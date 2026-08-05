@@ -186,6 +186,10 @@ func resetRoundValues(gameId uuid.UUID) error {
 	if err != nil {
 		return err
 	}
+	err = SetProperty(gameId, d_playerLeft, false)
+	if err != nil {
+		return err
+	}
 
 	players, err := db.PlayerTypeGetAll(gameId, playerType)
 	if err != nil {
@@ -233,4 +237,13 @@ func endGame(c interfaces.GameCommunication, gameId uuid.UUID) error {
 	}
 
 	return nil
+}
+
+func checkEnd(gameId uuid.UUID) (bool, error) {
+	numPlayers, err := db.PlayerTypeCount(gameId, playerType)
+	if err != nil {
+		return false, err
+	}
+
+	return numPlayers <= 1, nil
 }

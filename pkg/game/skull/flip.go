@@ -3,7 +3,9 @@ package skull
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand/v2"
 
+	"github.com/Bismyth/game-server/pkg/db"
 	"github.com/Bismyth/game-server/pkg/interfaces"
 	"github.com/google/uuid"
 )
@@ -86,12 +88,60 @@ func flippedSkull(c interfaces.GameCommunication, gameId uuid.UUID, playerId uui
 	}
 
 	if len(hand) <= 1 {
-		// make player out
+		removeActivePlayer(gameId, playerId)
+		end, err := checkEnd(gameId)
+		if err != nil {
+			return err
+		}
+		if end {
+			endGame(c, gameId)
+		}
+	} else {
+		randomIndex := rand.IntN(len(hand))
+		hand[randomIndex] = hand[len(hand)-1]
+		hand = hand[:len(hand)-1]
+		err = SetPlayerProperty(gameId, playerId, pd_tiles, hand)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = newRound(c, gameId)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func removeActivePlayer(gameId uuid.UUID, playerId uuid.UUID) error {
+	isPlayer := db.PlayerIsType(gameId, playerId, playerType)
+	if !isPlayer {
+		return nil
+	}
+	cursor := db.GetCursor(gameId, playerType)
+	current, err := cursor.Current()
+	if err != nil {
+		return err
+	}
+	if current == playerId {
+		err := cursor.Remove()
+		if err != nil {
+			return err
+		}
+	} else {
+		err := cursor.SeekIndex(playerId)
+		if err != nil {
+			return err
+		}
+		err = cursor.Remove()
+		if err != nil {
+			return err
+		}
+		err = cursor.SeekIndex(current)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

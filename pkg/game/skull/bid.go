@@ -50,8 +50,8 @@ func handleBid(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data 
 	if len(currentPassed) >= (int(numPlayers) - 1) {
 		return fmt.Errorf("everyone else has passed, you must now flip")
 	}
-
-	if totalTilesPlaced(tilesPlaced) < bidData.Bid {
+	totalTiles := totalTilesPlaced(tilesPlaced)
+	if totalTiles < bidData.Bid {
 		return fmt.Errorf("cannot bid more than there are tiles")
 	}
 
@@ -66,6 +66,14 @@ func handleBid(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data 
 	err = SetProperty(gameId, d_bid, bidData.Bid)
 	if err != nil {
 		return err
+	}
+
+	if totalTiles == bidData.Bid {
+		err = startFlipper(c, gameId, playerId)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
 
 	nextPlayer, err := findNextUnpassedPlayer(gameId, currentPassed)

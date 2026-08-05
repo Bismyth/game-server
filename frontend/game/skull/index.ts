@@ -12,6 +12,7 @@ const publicStateSchema = z.object({
   points: z.record(z.uuid(), z.number().int()),
   flipper: z.uuid(),
   gameOver: z.boolean(),
+  playerLeft: z.boolean(),
   turnOrder: z.array(z.string()),
   turn: z.uuid(),
   round: z.number().int(),
@@ -128,12 +129,16 @@ const userActions = computed(() => {
     showBid: false,
     showPass: false,
   }
-
-    if (gameData.publicState?.tilesPlaced[room.data.userId] == 0) {
+  if (gameData.publicState?.gameOver) {
     data.showMessage = true
-    data.message = "Place your inital tile"
-  } else if (hasNextRound.value) {
-    let flipped = 0
+    data.message = "The Game is Over!"
+  }
+  else if (hasNextRound.value) {
+    if (gameData.publicState?.playerLeft) {
+      data.showMessage = true
+      data.message = "A Player has left"
+    } else {
+      let flipped = 0
     for (const p in gameData.publicState?.tilesRevealed) {
       flipped += gameData.publicState?.tilesRevealed[p].length
     }
@@ -164,7 +169,15 @@ const userActions = computed(() => {
     }
     data.showMessage = true
     data.message = message
+    }
 
+
+    
+
+  }
+    else if (gameData.publicState?.tilesPlaced[room.data.userId] == 0) {
+    data.showMessage = true
+    data.message = "Place your inital tile"
   } else if (gameData.publicState?.flipper != '00000000-0000-0000-0000-000000000000') {
     const total = gameData.publicState?.bid
   

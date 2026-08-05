@@ -158,7 +158,39 @@ func (h *Handler) HandleReady(c interfaces.GameCommunication, gameId uuid.UUID, 
 }
 
 func (h *Handler) HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error {
-	return fmt.Errorf("not implemented")
+
+	err := removeActivePlayer(gameId, playerId)
+	if err != nil {
+		return err
+	}
+	end, err := checkEnd(gameId)
+	if err != nil {
+		return err
+	}
+
+	err = SetProperty(gameId, d_playerLeft, true)
+	if err != nil {
+		return err
+	}
+
+	err = updatePublicGameState(c, gameId)
+	if err != nil {
+		return err
+	}
+
+	if end {
+		err = endGame(c, gameId)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = newRound(c, gameId)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (h *Handler) Cleanup(gameId uuid.UUID) error {

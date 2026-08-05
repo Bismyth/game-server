@@ -58,6 +58,7 @@ type PublicGameState struct {
 	TurnOrder     []uuid.UUID          `json:"turnOrder"`
 	Turn          uuid.UUID            `json:"turn"`
 	Round         int                  `json:"round"`
+	PlayerLeft    bool                 `json:"playerLeft"`
 }
 
 type PrivateGameState struct {
@@ -75,6 +76,7 @@ const d_flipper DBProperty = "flipper"
 const d_currentTurn DBProperty = "currentTurn"
 const d_passed DBProperty = "passed"
 const d_round DBProperty = "round"
+const d_playerLeft DBProperty = "playerLeft"
 
 func GetProperty[T any](gameId uuid.UUID, p DBProperty) (T, error) {
 	return db.GetGameProperty[T](gameId, string(p))

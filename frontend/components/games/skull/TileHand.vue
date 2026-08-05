@@ -43,7 +43,11 @@ const emit = defineEmits(['selectTile', 'selectHand'])
 
 <template>
   <div class="is-flex is-gap-1">
-    <a @click="emit('selectHand')" v-if="placed && clickable">
+    <a
+      @click="emit('selectHand')"
+      v-if="placed && clickable"
+      class="is-flex is-gap-1 n-text p-select"
+    >
       <TileDisplay v-for="t in showedHand" :show="t[0]" :skull="t[1]" />
     </a>
 
@@ -59,3 +63,15 @@ const emit = defineEmits(['selectTile', 'selectHand'])
     <TileDisplay v-else v-for="t in showedHand" :show="t[0]" :skull="t[1]" />
   </div>
 </template>
+
+<style>
+.p-select {
+  border-radius: 5px;
+  border: var(--bulma-text) 1px solid;
+  padding: 0.25rem;
+}
+
+.p-select:hover {
+  opacity: 0.8;
+}
+</style>
