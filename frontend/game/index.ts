@@ -11,7 +11,7 @@ interface GameInfo {
 }
 
 export const gameTypeLabels: { [k in GameTypes]: GameInfo } = {
-  liarsdice: {displayName: 'Liars Dice', icon: 'bi:dice-2-fill'},
+  liarsdice: {displayName: 'Liars Dice', icon: 'mdi:dice-2'},
   skull: {displayName: 'Skull (Beta)', icon: 'mdi:skull'},
 }
 

@@ -49,8 +49,7 @@ coverage
 # Go workspace file
 go.work
 
-.output/*
-!.output/.gitkeep
+.output
 *.db
 *.env
 /config/

@@ -1,24 +1,10 @@
 <script setup lang="ts">
-import { roomDataSchema } from '@/api-utils/room.ts'
 import { gameTypeLabels, type GameTypes } from '@/game'
-import { useRoomStore } from '@/stores/room'
-import FormWrap from './FormWrap.vue'
 import ModalWrap from './ModalWrap.vue'
-import type { z } from 'zod'
 import api from '@/api-utils/index.ts'
-import { ref, watch } from 'vue'
-import type { ComponentExposed } from 'vue-component-type-helpers'
+import { ref } from 'vue'
 import IconButton from './IconButton.vue'
 import { Icon } from '@iconify/vue'
-
-const room = useRoomStore()
-
-type FormResult = z.infer<typeof roomDataSchema>
-
-const submit = (data: FormResult) => {
-  api.room.change(data)
-  showOptions.value = false
-}
 
 const selectGame = (v: GameTypes) => {
   api.room.change({ gameType: v })
@@ -41,7 +27,9 @@ const openModal = () => {
     <template #body>
       <div class="boxes is-gap-1">
         <div class="box s-box" v-for="(value, key) in gameTypeLabels" :key="key">
-          <Icon :icon="value.icon" />
+          <span class="p-1" :style="{ fontSize: '64px' }">
+            <Icon :icon="value.icon" />
+          </span>
           <span>{{ value.displayName }}</span>
           <button @click="selectGame(key)" class="button">Select</button>
         </div>
@@ -61,6 +49,7 @@ const openModal = () => {
   flex-direction: column;
   text-align: center;
   margin-bottom: 0 !important;
+  width: 8rem;
 }
 .boxes {
   display: flex;

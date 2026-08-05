@@ -36,6 +36,7 @@ var upgrader = websocket.Upgrader{
 // TODO: add array to config
 var allowedOrigins = []string{
 	"localhost:8080",
+	"localhost:4173",
 	"bismyth.github.io",
 	"met4000.github.io",
 }
