@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import api from '@/api'
+import api from '@/api-utils'
 import DarkModeToggle from '@/components/DarkModeToggle.vue'
 import FullLogo from '@/components/FullLogo.vue'
 import { onMounted, ref } from 'vue'

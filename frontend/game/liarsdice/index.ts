@@ -1,5 +1,5 @@
 /* eslint-disable prefer-const */
-import api from '@/api'
+import api from '@/api-utils'
 import { useRoomStore } from '@/stores/room'
 import { reactive, ref } from 'vue'
 import { z } from 'zod'

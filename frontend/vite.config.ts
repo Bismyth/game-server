@@ -1,0 +1,33 @@
+import { fileURLToPath, URL } from 'node:url'
+
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import svgLoader from 'vite-svg-loader'
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  root: fileURLToPath(new URL('./', import.meta.url)),
+  plugins: [vue(), svgLoader()],
+  build: {
+    outDir: '.output',
+  },
+  server: {
+    port: 8080,
+    proxy: {
+      '/ws': 'ws://localhost:8081/',
+      '/api/': 'http://localhost:8081/',
+    },
+  },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        silenceDeprecations: ['if-function'],
+      },
+    },
+  },
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./', import.meta.url)),
+    },
+  },
+})

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import api from '@/api'
+import api from '@/api-utils/index.ts'
 import { useRoomStore } from '@/stores/room'
 import { defineAsyncComponent, ref, watch } from 'vue'
 import ModalWrap from '../ModalWrap.vue'

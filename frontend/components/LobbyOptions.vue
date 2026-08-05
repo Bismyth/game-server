@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { roomDataSchema } from '@/api/room'
+import { roomDataSchema } from '@/api-utils/room.ts'
 import { gameTypeLabels, type GameTypes } from '@/game'
 import { useRoomStore } from '@/stores/room'
 import FormWrap from './FormWrap.vue'
 import ModalWrap from './ModalWrap.vue'
 import type { z } from 'zod'
-import api from '@/api'
+import api from '@/api-utils/index.ts'
 import { ref, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import IconButton from './IconButton.vue'

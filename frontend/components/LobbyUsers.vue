@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { RoomUsers } from '@/api/room'
+import type { RoomUsers } from '@/api-utils/room.ts'
 import { Icon } from '@iconify/vue'
 import RoomName from './RoomName.vue'
 

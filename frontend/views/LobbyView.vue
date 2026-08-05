@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import api from '@/api'
+import api from '@/api-utils'
 import LobbyOptions from '@/components/LobbyOptions.vue'
 import GameOptionsForm from '@/components/games/GameOptionsForm.vue'
 import { gameTypeLabels } from '@/game'
@@ -75,7 +75,9 @@ onMounted(() => {
                 <div class="mb-3">
                   <span class="has-text-weight-semibold">Game Type: </span>
                   {{
-                    room.data.gameType === '' ? 'Not Selected' : gameTypeLabels[room.data.gameType].displayName
+                    room.data.gameType === ''
+                      ? 'Not Selected'
+                      : gameTypeLabels[room.data.gameType].displayName
                   }}
                 </div>
                 <div v-if="room.data.gameType !== ''">
