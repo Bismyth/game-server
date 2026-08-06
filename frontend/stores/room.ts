@@ -1,10 +1,10 @@
-import api from '@/api'
-import type { RoomUsers, RoomInfo } from '@/api/room'
+import api from '@/api-utils'
+import type { RoomUsers, RoomInfo } from '@/api-utils/room'
 import type { GameTypes } from '@/game'
 import { defineStore } from 'pinia'
 import { computed, reactive, ref } from 'vue'
 import router from '@/router'
-import { isNilUUID } from '@/api/main'
+import { isNilUUID } from '@/api-utils/main'
 import { useErrorStore } from './error'
 
 const nilUUID = '00000000-0000-0000-0000-000000000000'

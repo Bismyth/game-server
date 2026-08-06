@@ -1,18 +1,15 @@
 FROM node:24.15.0 AS node_builder
 WORKDIR /app
-COPY package*.json ./
+COPY frontend/package*.json ./
 RUN npm install
-COPY tsconfig.app.json tsconfig.json tsconfig.node.json vite.config.ts index.html env.d.ts ./
-COPY frontend ./frontend
-COPY public ./public
+COPY frontend .
 RUN npm run build
 
 FROM golang:1.26.2 AS go_builder
 WORKDIR /app
-COPY go.sum go.mod ./
+COPY backend/go.sum backend/go.mod .
 RUN go mod download
-COPY pkg ./pkg
-COPY main.go ./
+COPY backend .
 RUN CGO_ENABLED=0 GOOS=linux go build -o /game-server
 
 FROM alpine:3.23.4

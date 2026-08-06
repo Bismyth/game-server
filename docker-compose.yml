@@ -3,6 +3,7 @@ services:
     build: .
     environment:
       - REDIS_ADDR=redis:6379
+      - APPLICATION_JWT_SECRET=changeme
     ports:
       - '8080:8080'
   redis:

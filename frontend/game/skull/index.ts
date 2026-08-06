@@ -1,5 +1,5 @@
 /* eslint-disable prefer-const */
-import api from '@/api'
+import api from '@/api-utils'
 import { useRoomStore } from '@/stores/room'
 import { computed, reactive, ref } from 'vue'
 import { z } from 'zod'
@@ -7,6 +7,7 @@ import { z } from 'zod'
 const publicStateSchema = z.object({
   tilesPlaced: z.record(z.uuid(), z.number().int()),
   tilesRevealed: z.record(z.uuid(), z.array(z.boolean())),
+  tileCount: z.record(z.uuid(), z.number().int()),
   bid: z.number().int(),
   passed: z.array(z.uuid()),
   points: z.record(z.uuid(), z.number().int()),
@@ -213,9 +214,24 @@ const userActions = computed(() => {
       data.message = `Raise the bid or pass. Current Bid: ${gameData.publicState.bid}`
       data.showPass = true
     }
+  } else if(gameData.publicState.bid > 0) {
+    data.showMessage = true
+    data.message = `The bid is at ${gameData.publicState.bid}`
+  } else if (notAllTilesPlaced()) {
+    data.showMessage = true
+    data.message = 'Waiting for all players to place their first tile.'
   }
   return data
 })
+
+
+const notAllTilesPlaced = () => {
+  if (!gameData.publicState) return false
+  for (const c in gameData.publicState.tilesPlaced) {
+    if (gameData.publicState.tilesPlaced[c] == 0) return true
+  }
+  return false
+}
 
 
 
@@ -277,7 +293,9 @@ const canFlip = (id: string): boolean => {
   return (gameData.publicState?.tilesPlaced[id] ?? 0) > (gameData.publicState?.tilesRevealed[id].length ?? 0)
 }
 
-
+const passed = (id: string): boolean => {
+  return gameData.publicState?.passed.includes(id) ?? false
+}
 
 export default {
   create,
@@ -293,5 +311,6 @@ export default {
   nextRound,
   hasNextRound,
   canFlip,
-  userActions
+  userActions,
+  passed
 }

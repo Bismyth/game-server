@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import api from '@/api'
+import api from '@/api-utils'
 import { useRoomStore } from '@/stores/room'
 import { Icon } from '@iconify/vue'
 import { computed } from 'vue'
