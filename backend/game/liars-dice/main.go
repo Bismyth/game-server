@@ -53,11 +53,11 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) error {
 		return fmt.Errorf("not enough players")
 	}
 
-	if err := SetProperty(gameId, d_bid, ""); err != nil {
+	if err := GD_BID.Set(gameId, ""); err != nil {
 		return err
 	}
 
-	if err := SetProperty(gameId, d_gameOver, false); err != nil {
+	if err := GD_GAME_OVER.Set(gameId, false); err != nil {
 		return err
 	}
 
@@ -67,7 +67,8 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) error {
 	})
 
 	for _, player := range players {
-		if err := db.SetPlayerProperty(gameId, player, "dice", options.StartingDice); err != nil {
+		err := PD_DICE.Set(gameId, player, options.StartingDice)
+		if err != nil {
 			return err
 		}
 		db.PlayerGiveType(gameId, player, playerType)
@@ -76,7 +77,7 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) error {
 	pr := RoundInfo{
 		Round: 0,
 	}
-	err = SetProperty(gameId, d_previousRound, pr)
+	err = GD_PREVIOUS_ROUND.Set(gameId, pr)
 	if err != nil {
 		return err
 	}
@@ -156,29 +157,9 @@ func (h *Handler) HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, 
 		return nil
 	}
 
-	cursor := db.GetCursor(gameId, playerType)
-	current, err := cursor.Current()
+	err := db.RemoveFromCursor(gameId, playerId, playerType)
 	if err != nil {
 		return err
-	}
-	if current == playerId {
-		err := cursor.Remove()
-		if err != nil {
-			return err
-		}
-	} else {
-		err := cursor.SeekIndex(playerId)
-		if err != nil {
-			return err
-		}
-		err = cursor.Remove()
-		if err != nil {
-			return err
-		}
-		err = cursor.SeekIndex(current)
-		if err != nil {
-			return err
-		}
 	}
 
 	end, err := checkEnd(gameId)

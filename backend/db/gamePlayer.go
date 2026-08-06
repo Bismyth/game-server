@@ -85,6 +85,39 @@ func GetCursor(gameId uuid.UUID, t string) *Cursor {
 	return c
 }
 
+func RemoveFromCursor(gameId uuid.UUID, playerId uuid.UUID, t string) error {
+	isPlayer := PlayerIsType(gameId, playerId, t)
+	if !isPlayer {
+		return nil
+	}
+	cursor := GetCursor(gameId, t)
+	current, err := cursor.Current()
+	if err != nil {
+		return err
+	}
+	if current == playerId {
+		err := cursor.Remove()
+		if err != nil {
+			return err
+		}
+	} else {
+		err := cursor.SeekIndex(playerId)
+		if err != nil {
+			return err
+		}
+		err = cursor.Remove()
+		if err != nil {
+			return err
+		}
+		err = cursor.SeekIndex(current)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (c *Cursor) Reset() {
 	c.SetIndex(0)
 }

@@ -63,21 +63,14 @@ func checkValidBid(oldBid string, newBid string) bool {
 }
 
 func handleBid(c interfaces.GameCommunication, gameId uuid.UUID, bid string) error {
-	oldBid, err := GetProperty[string](gameId, d_bid)
-	if err != nil {
-		return err
-	}
-
+	oldBid := GD_BID.MustGet(gameId)
 	if !checkValidBid(oldBid, bid) {
 		return fmt.Errorf("invalid bid")
 	}
 
-	err = SetProperty(gameId, d_bid, bid)
-	if err != nil {
-		return err
-	}
+	GD_BID.MustSet(gameId, bid)
 
-	err = progressTurn(c, gameId)
+	err := progressTurn(c, gameId)
 	if err != nil {
 		return err
 	}

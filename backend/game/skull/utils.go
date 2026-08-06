@@ -43,6 +43,21 @@ func countTiles(arr []Tile, t Tile) int {
 	return num
 }
 
+func getTileList(gameId uuid.UUID) ([]int, error) {
+	players, err := db.PlayerTypeGetAll(gameId, playerType)
+	if err != nil {
+		return []int{}, err
+	}
+
+	placedTiles := make([]int, len(players))
+	for i, playerId := range players {
+		t := PD_TILES_PLACED.MustGetPD(gameId, playerId)
+		placedTiles[i] = len(t)
+	}
+
+	return placedTiles, nil
+}
+
 func countTilesPlaced(gameId uuid.UUID) ([]int, error) {
 	players, err := db.PlayerTypeGetAll(gameId, playerType)
 	if err != nil {
@@ -51,35 +66,41 @@ func countTilesPlaced(gameId uuid.UUID) ([]int, error) {
 
 	placedTiles := make([]int, len(players))
 	for i, playerId := range players {
-		t, err := GetPlayerProperty[[]Tile](gameId, playerId, pd_tilesPlaced)
-		if err != nil {
-			return placedTiles, err
-		}
+		t := PD_TILES_PLACED.MustGetPD(gameId, playerId)
 		placedTiles[i] = len(t)
 	}
 
 	return placedTiles, nil
 }
 
-func totalTilesPlaced(placed []int) int {
+func totalTilesPlaced(gameId uuid.UUID) (int, error) {
+	tiles, err := getTileList(gameId)
+	if err != nil {
+		return 0, err
+	}
 	sum := 0
-	for _, num := range placed {
+	for _, num := range tiles {
 		sum += num
 	}
-	return sum
+	return sum, nil
 }
 
-func allPlayersTilesPlaced(placed []int) bool {
+func allPlayersTilesPlaced(gameId uuid.UUID) (bool, error) {
+	tiles, err := getTileList(gameId)
+	if err != nil {
+		return false, err
+	}
+
 	output := true
-	for _, num := range placed {
+	for _, num := range tiles {
 		if num <= 0 {
 			output = false
 		}
 	}
-	return output
+	return output, nil
 }
 
-func findNextUnpassedPlayer(gameId uuid.UUID, passed []uuid.UUID) (uuid.UUID, error) {
+func goToUnpassedPlayer(gameId uuid.UUID, passed []uuid.UUID) (uuid.UUID, error) {
 	cursor := db.GetCursor(gameId, playerType)
 	currentPlayer, err := cursor.Current()
 	if err != nil {
@@ -114,12 +135,7 @@ func isPassedPlayer(playerId uuid.UUID, passed []uuid.UUID) bool {
 }
 
 func updatePublicGameState(c interfaces.GameCommunication, gameId uuid.UUID) error {
-	err := cachePublicGameState(gameId)
-	if err != nil {
-		return err
-	}
-
-	gs, err := getPublicGameState(gameId)
+	gs, err := cachePublicGameState(gameId)
 	if err != nil {
 		return err
 	}
@@ -130,25 +146,14 @@ func updatePublicGameState(c interfaces.GameCommunication, gameId uuid.UUID) err
 }
 
 func newRound(c interfaces.GameCommunication, gameId uuid.UUID) error {
-	err := SetProperty(gameId, d_bid, 0)
-	if err != nil {
-		return err
-	}
-	round, err := GetProperty[int](gameId, d_round)
-	if err != nil {
-		return err
-	}
-	err = SetProperty(gameId, d_round, round+1)
-	if err != nil {
-		return err
-	}
+	roundNumber := PGS_ROUND.MustGet(gameId)
+	PGS_ROUND.MustSet(gameId, roundNumber+1)
+	resetRoundValues(gameId)
 
-	err = resetRoundValues(gameId)
+	err := updatePublicGameState(c, gameId)
 	if err != nil {
 		return err
 	}
-
-	updatePublicGameState(c, gameId)
 
 	players, err := db.PlayerTypeGetAll(gameId, playerType)
 	if err != nil {
@@ -167,68 +172,35 @@ func newRound(c interfaces.GameCommunication, gameId uuid.UUID) error {
 }
 
 func resetRoundValues(gameId uuid.UUID) error {
-	err := SetProperty(gameId, d_bid, 0)
-	if err != nil {
-		return err
-	}
-
-	err = SetProperty(gameId, d_flipper, uuid.Nil)
-	if err != nil {
-		return err
-	}
-
-	err = SetProperty(gameId, d_currentTurn, uuid.Nil)
-	if err != nil {
-		return err
-	}
-
-	err = SetProperty(gameId, d_passed, []uuid.UUID{})
-	if err != nil {
-		return err
-	}
-	err = SetProperty(gameId, d_playerLeft, false)
-	if err != nil {
-		return err
-	}
+	PGS_BID.MustSet(gameId, 0)
+	PGS_FLIPPER.MustSet(gameId, uuid.Nil)
+	PGS_PASSED.MustSet(gameId, []uuid.UUID{})
+	PGS_PLAYER_LEFT.MustSet(gameId, false)
 
 	players, err := db.PlayerTypeGetAll(gameId, playerType)
 	if err != nil {
 		return err
 	}
 	for _, player := range players {
-		err = SetPlayerProperty(gameId, player, pd_tilesPlaced, []Tile{})
-		if err != nil {
-			return err
-		}
-		err = SetPlayerProperty(gameId, player, pd_tilesRevealed, 0)
-		if err != nil {
-			return err
-		}
+		PD_TILES_PLACED.MustSet(gameId, player, []Tile{})
+		PD_TILES_REVEALED.MustSet(gameId, player, 0)
 	}
 
 	return nil
 }
 
 func endGame(c interfaces.GameCommunication, gameId uuid.UUID) error {
-	err := SetProperty(gameId, d_gameOver, true)
-	if err != nil {
-		return err
-	}
+	PGS_GAME_OVER.MustSet(gameId, true)
 
-	err = cachePublicGameState(gameId)
+	pgs, err := cachePublicGameState(gameId)
 	if err != nil {
 		return err
 	}
 
 	c.EndGame()
 
-	pGs, err := getPublicGameState(gameId)
-	if err != nil {
-		return err
-	}
-
 	c.SendGlobal(GameState{
-		Public: pGs,
+		Public: pgs,
 	})
 
 	err = cleanup(gameId)

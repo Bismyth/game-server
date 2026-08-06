@@ -10,34 +10,13 @@ import (
 )
 
 func handleBid(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data json.RawMessage) error {
-
-	turn, err := GetProperty[uuid.UUID](gameId, d_currentTurn)
-	if err != nil {
-		return err
-	}
-	if turn != playerId {
-		return fmt.Errorf("not your turn")
-	}
-
 	var bidData ActionBid
-	err = json.Unmarshal(data, &bidData)
+	err := json.Unmarshal(data, &bidData)
 	if err != nil {
 		return fmt.Errorf("invalid action data")
 	}
 
-	tilesPlaced, err := countTilesPlaced(gameId)
-	if err != nil {
-		return err
-	}
-	if !allPlayersTilesPlaced(tilesPlaced) {
-		return fmt.Errorf("all players must place at least one tile")
-	}
-
-	currentPassed, err := GetProperty[[]uuid.UUID](gameId, d_passed)
-	if err != nil {
-		return err
-	}
-
+	currentPassed := PGS_PASSED.MustGet(gameId)
 	if isPassedPlayer(playerId, currentPassed) {
 		return fmt.Errorf("you have already passed")
 	}
@@ -50,24 +29,19 @@ func handleBid(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data 
 	if len(currentPassed) >= (int(numPlayers) - 1) {
 		return fmt.Errorf("everyone else has passed, you must now flip")
 	}
-	totalTiles := totalTilesPlaced(tilesPlaced)
+	totalTiles, err := totalTilesPlaced(gameId)
+	if err != nil {
+		return err
+	}
 	if totalTiles < bidData.Bid {
 		return fmt.Errorf("cannot bid more than there are tiles")
 	}
 
-	currentBid, err := GetProperty[int](gameId, d_bid)
-	if err != nil {
-		return err
-	}
+	currentBid := PGS_BID.MustGet(gameId)
 	if currentBid >= bidData.Bid {
 		return fmt.Errorf("must increase bid")
 	}
-
-	err = SetProperty(gameId, d_bid, bidData.Bid)
-	if err != nil {
-		return err
-	}
-
+	PGS_BID.MustSet(gameId, bidData.Bid)
 	if totalTiles == bidData.Bid {
 		err = startFlipper(c, gameId, playerId)
 		if err != nil {
@@ -76,12 +50,7 @@ func handleBid(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data 
 		return nil
 	}
 
-	nextPlayer, err := findNextUnpassedPlayer(gameId, currentPassed)
-	if err != nil {
-		return err
-	}
-
-	err = SetProperty(gameId, d_currentTurn, nextPlayer)
+	_, err = goToUnpassedPlayer(gameId, currentPassed)
 	if err != nil {
 		return err
 	}
@@ -95,42 +64,21 @@ func handleBid(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data 
 }
 
 func handlePass(c interfaces.GameCommunication, gameId, playerId uuid.UUID, _ json.RawMessage) error {
-	turn, err := GetProperty[uuid.UUID](gameId, d_currentTurn)
-	if err != nil {
-		return err
-	}
-	if turn != playerId {
-		return fmt.Errorf("not your turn")
-	}
 
-	bid, err := GetProperty[int](gameId, d_bid)
-	if err != nil {
-		return err
-	}
+	bid := PGS_BID.MustGet(gameId)
 	if bid <= 0 {
 		return fmt.Errorf("cannot pass without a bid")
 	}
 
-	currentPassed, err := GetProperty[[]uuid.UUID](gameId, d_passed)
-	if err != nil {
-		return err
-	}
-
+	currentPassed := PGS_PASSED.MustGet(gameId)
 	if isPassedPlayer(playerId, currentPassed) {
 		return fmt.Errorf("already passed")
 	}
 
 	currentPassed = append(currentPassed, playerId)
-	err = SetProperty(gameId, d_passed, currentPassed)
-	if err != nil {
-		return err
-	}
+	PGS_PASSED.MustSet(gameId, currentPassed)
 
-	nextPlayer, err := findNextUnpassedPlayer(gameId, currentPassed)
-	if err != nil {
-		return err
-	}
-	err = SetProperty(gameId, d_currentTurn, nextPlayer)
+	nextPlayer, err := goToUnpassedPlayer(gameId, currentPassed)
 	if err != nil {
 		return err
 	}

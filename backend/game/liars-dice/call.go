@@ -9,7 +9,11 @@ import (
 )
 
 func getAllDice(gameId uuid.UUID) ([]int, error) {
-	hands, err := db.GetMultiPlayerProperty[[]int](gameId, "hand", playerType)
+	players, err := db.PlayerTypeGetAll(gameId, playerType)
+	if err != nil {
+		return nil, err
+	}
+	hands, err := PD_HAND.GetMulti(gameId, players)
 	if err != nil {
 		return nil, err
 	}
@@ -24,10 +28,7 @@ func getAllDice(gameId uuid.UUID) ([]int, error) {
 
 // returns true if bid was met, false if bid was a lie
 func evalBid(gameId uuid.UUID) (bool, error) {
-	currentBid, err := GetProperty[string](gameId, d_bid)
-	if err != nil {
-		return false, err
-	}
+	currentBid := GD_BID.MustGet(gameId)
 
 	a, f, err := parseBid(currentBid)
 	if err != nil {
@@ -55,14 +56,14 @@ func loseDiceAtCursor(gameId uuid.UUID, playerCursor *db.Cursor) (int, error) {
 		return 0, err
 	}
 
-	amount, err := db.GetPlayerProperty[int](gameId, playerId, "dice")
+	amount, err := PD_DICE.Get(gameId, playerId)
 	if err != nil {
 		return 0, err
 	}
 
 	newAmount := amount - 1
 
-	err = db.SetPlayerProperty(gameId, playerId, "dice", newAmount)
+	err = PD_DICE.Set(gameId, playerId, newAmount)
 	if err != nil {
 		return 0, err
 	}

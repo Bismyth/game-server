@@ -44,11 +44,7 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) (err error) {
 	if err != nil {
 		return
 	}
-
-	err = SetProperty(gameId, d_gameOver, false)
-	if err != nil {
-		return
-	}
+	PGS_GAME_OVER.MustSet(gameId, false)
 
 	players, err := db.GetRoomUserOrder(gameId)
 	if err != nil {
@@ -75,14 +71,8 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) (err error) {
 		if err != nil {
 			return
 		}
-		err = SetPlayerProperty(gameId, player, pd_points, 0)
-		if err != nil {
-			return
-		}
-		err = SetPlayerProperty(gameId, player, pd_tiles, startingHand)
-		if err != nil {
-			return
-		}
+		PD_POINTS.MustSet(gameId, player, 0)
+		PD_TILES.MustSet(gameId, player, startingHand)
 	}
 
 	err = resetRoundValues(gameId)
@@ -90,15 +80,12 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) (err error) {
 		return
 	}
 
-	err = db.SetGameProperty(gameId, string(d_round), 1)
-	if err != nil {
-		return err
-	}
+	PGS_ROUND.MustSet(gameId, 1)
 
 	c := db.GetCursor(gameId, playerType)
 	c.Reset()
 
-	err = cachePublicGameState(gameId)
+	_, err = cachePublicGameState(gameId)
 	if err != nil {
 		return err
 	}
@@ -120,6 +107,25 @@ func (h *Handler) HandleAction(c interfaces.GameCommunication, gameId uuid.UUID,
 	err := json.Unmarshal(data, &action)
 	if err != nil {
 		return err
+	}
+
+	cursor := db.GetCursor(gameId, playerType)
+	current, err := cursor.Current()
+	if err != nil {
+		return err
+	}
+	placed := PD_TILES_PLACED.MustGetPD(gameId, playerId)
+	flipper := PGS_FLIPPER.MustGet(gameId)
+
+	if playerId != flipper && len(placed) > 1 && current != playerId {
+		return fmt.Errorf("not your turn")
+	}
+	allPlaced, err := allPlayersTilesPlaced(gameId)
+	if err != nil {
+		return err
+	}
+	if len(placed) > 1 && !allPlaced {
+		return fmt.Errorf("not all players have placed a tile yet")
 	}
 
 	actionFunc, ok := actionHandlers[action.Option]
@@ -158,8 +164,7 @@ func (h *Handler) HandleReady(c interfaces.GameCommunication, gameId uuid.UUID, 
 }
 
 func (h *Handler) HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error {
-
-	err := removeActivePlayer(gameId, playerId)
+	err := db.RemoveFromCursor(gameId, playerId, playerType)
 	if err != nil {
 		return err
 	}
@@ -168,10 +173,7 @@ func (h *Handler) HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, 
 		return err
 	}
 
-	err = SetProperty(gameId, d_playerLeft, true)
-	if err != nil {
-		return err
-	}
+	PGS_PLAYER_LEFT.MustSet(gameId, true)
 
 	err = updatePublicGameState(c, gameId)
 	if err != nil {

@@ -73,23 +73,21 @@ func GetPlayerProperty[T any](gameId uuid.UUID, playerId uuid.UUID, field string
 	return GetGameProperty[T](gameId, i(field, playerId))
 }
 
-func GetMultiPlayerProperty[T any](gameId uuid.UUID, field string, playerType string) ([]T, error) {
-	players, err := PlayerTypeGetAll(gameId, playerType)
-	if err != nil {
-		return nil, err
-	}
-
-	output := []T{}
-
-	for _, player := range players {
-		p, err := GetPlayerProperty[T](gameId, player, field)
+func LoadPlayerProperty[T any, U any](gameId uuid.UUID, players []uuid.UUID, property string, cb func(T) (U, error)) (map[uuid.UUID]U, error) {
+	o := make(map[uuid.UUID]U)
+	for _, p := range players {
+		d, err := GetPlayerProperty[T](gameId, p, property)
 		if err != nil {
 			return nil, err
 		}
-		output = append(output, p)
+		v, err := cb(d)
+		if err != nil {
+			return nil, err
+		}
+		o[p] = v
 	}
 
-	return output, nil
+	return o, nil
 }
 
 func DeleteGame(gameId uuid.UUID) error {
