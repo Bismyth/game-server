@@ -18,7 +18,7 @@ func TestCursor(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	playerType := "player"
+	C_PLAYER := db.Cursor{Key: "player"}
 
 	users := make([]uuid.UUID, 2)
 	for i := range users {
@@ -32,13 +32,13 @@ func TestCursor(t *testing.T) {
 	t.Log(users)
 
 	for _, user := range users {
-		err := db.PlayerGiveType(gameId, user, playerType)
+		err := C_PLAYER.For(gameId).Add(user)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	c := db.GetCursor(gameId, playerType)
+	c := C_PLAYER.For(gameId)
 	c.Reset()
 
 	current, err := c.Current()

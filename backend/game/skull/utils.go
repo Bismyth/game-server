@@ -9,18 +9,9 @@ import (
 )
 
 func cleanup(gameId uuid.UUID) error {
-	c := db.GetCursor(gameId, playerType)
-	err := c.Delete()
-	if err != nil {
-		return err
-	}
+	err := C_PLAYER.For(gameId).Delete()
 
 	err = db.ExpireCache(gameId, cacheExpireTime)
-	if err != nil {
-		return err
-	}
-
-	err = db.DeletePlayerTypeList(gameId, playerType)
 	if err != nil {
 		return err
 	}
@@ -44,7 +35,7 @@ func countTiles(arr []Tile, t Tile) int {
 }
 
 func getTileList(gameId uuid.UUID) ([]int, error) {
-	players, err := db.PlayerTypeGetAll(gameId, playerType)
+	players, err := C_PLAYER.For(gameId).GetAll()
 	if err != nil {
 		return []int{}, err
 	}
@@ -59,7 +50,7 @@ func getTileList(gameId uuid.UUID) ([]int, error) {
 }
 
 func countTilesPlaced(gameId uuid.UUID) ([]int, error) {
-	players, err := db.PlayerTypeGetAll(gameId, playerType)
+	players, err := C_PLAYER.For(gameId).GetAll()
 	if err != nil {
 		return []int{}, err
 	}
@@ -101,7 +92,7 @@ func allPlayersTilesPlaced(gameId uuid.UUID) (bool, error) {
 }
 
 func goToUnpassedPlayer(gameId uuid.UUID, passed []uuid.UUID) (uuid.UUID, error) {
-	cursor := db.GetCursor(gameId, playerType)
+	cursor := C_PLAYER.For(gameId)
 	currentPlayer, err := cursor.Current()
 	if err != nil {
 		return uuid.Nil, err
@@ -155,7 +146,7 @@ func newRound(c interfaces.GameCommunication, gameId uuid.UUID) error {
 		return err
 	}
 
-	players, err := db.PlayerTypeGetAll(gameId, playerType)
+	players, err := C_PLAYER.For(gameId).GetAll()
 	if err != nil {
 		return err
 	}
@@ -177,7 +168,7 @@ func resetRoundValues(gameId uuid.UUID) error {
 	PGS_PASSED.MustSet(gameId, []uuid.UUID{})
 	PGS_PLAYER_LEFT.MustSet(gameId, false)
 
-	players, err := db.PlayerTypeGetAll(gameId, playerType)
+	players, err := C_PLAYER.For(gameId).GetAll()
 	if err != nil {
 		return err
 	}
@@ -212,7 +203,7 @@ func endGame(c interfaces.GameCommunication, gameId uuid.UUID) error {
 }
 
 func checkEnd(gameId uuid.UUID) (bool, error) {
-	numPlayers, err := db.PlayerTypeCount(gameId, playerType)
+	numPlayers, err := C_PLAYER.For(gameId).Length()
 	if err != nil {
 		return false, err
 	}

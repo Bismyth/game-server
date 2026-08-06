@@ -13,8 +13,6 @@ import (
 
 const Code = "liarsdice"
 
-const playerType = "player"
-
 const cacheExpireTime time.Duration = 2 * time.Hour
 
 type Handler struct{}
@@ -71,7 +69,10 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) error {
 		if err != nil {
 			return err
 		}
-		db.PlayerGiveType(gameId, player, playerType)
+		err = C_PLAYER.For(gameId).Add(player)
+		if err != nil {
+			return err
+		}
 	}
 
 	pr := RoundInfo{
@@ -82,12 +83,10 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) error {
 		return err
 	}
 
-	c := db.GetCursor(gameId, playerType)
-	c.Reset()
-
+	C_PLAYER.For(gameId).Reset()
 	rollHands(gameId, players)
 
-	err = cachePublicGameState(gameId)
+	_, err = cachePublicGameState(gameId)
 	if err != nil {
 		return err
 	}
@@ -100,8 +99,7 @@ func (h *Handler) HandleAction(c interfaces.GameCommunication, gameId uuid.UUID,
 
 	var err error
 
-	cursor := db.GetCursor(gameId, playerType)
-	current, err := cursor.Current()
+	current, err := C_PLAYER.For(gameId).Current()
 	if err != nil {
 		return err
 	}
@@ -152,12 +150,13 @@ func (h *Handler) HandleReady(c interfaces.GameCommunication, gameId uuid.UUID, 
 }
 
 func (h *Handler) HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error {
-	isPlayer := db.PlayerIsType(gameId, playerId, playerType)
+	pTracker := C_PLAYER.For(gameId)
+	isPlayer := pTracker.HasItem(playerId)
 	if !isPlayer {
 		return nil
 	}
 
-	err := db.RemoveFromCursor(gameId, playerId, playerType)
+	err := pTracker.RemoveTarget(playerId)
 	if err != nil {
 		return err
 	}
@@ -199,7 +198,7 @@ func (h *Handler) Cleanup(gameId uuid.UUID) error {
 }
 
 func checkEnd(gameId uuid.UUID) (bool, error) {
-	numPlayers, err := db.PlayerTypeCount(gameId, playerType)
+	numPlayers, err := C_PLAYER.For(gameId).Length()
 	if err != nil {
 		return false, err
 	}

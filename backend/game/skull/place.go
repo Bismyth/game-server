@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/Bismyth/game-server/db"
 	"github.com/Bismyth/game-server/interfaces"
 	"github.com/google/uuid"
 )
@@ -36,9 +35,8 @@ func handlePlace(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid
 	currentTilesPlaced = append(currentTilesPlaced, placeData.Tile)
 	PD_TILES_PLACED.MustSet(gameId, playerId, currentTilesPlaced)
 
-	cursor := db.GetCursor(gameId, playerType)
 	if len(currentTilesPlaced) > 1 {
-		_, err := cursor.Next()
+		_, err := C_PLAYER.For(gameId).Next()
 		if err != nil {
 			return err
 		}

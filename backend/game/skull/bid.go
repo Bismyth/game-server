@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/Bismyth/game-server/db"
 	"github.com/Bismyth/game-server/interfaces"
 	"github.com/google/uuid"
 )
@@ -21,7 +20,7 @@ func handleBid(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data 
 		return fmt.Errorf("you have already passed")
 	}
 
-	numPlayers, err := db.PlayerTypeCount(gameId, playerType)
+	numPlayers, err := C_PLAYER.For(gameId).Length()
 	if err != nil {
 		return err
 	}
@@ -64,7 +63,6 @@ func handleBid(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data 
 }
 
 func handlePass(c interfaces.GameCommunication, gameId, playerId uuid.UUID, _ json.RawMessage) error {
-
 	bid := PGS_BID.MustGet(gameId)
 	if bid <= 0 {
 		return fmt.Errorf("cannot pass without a bid")
@@ -83,7 +81,7 @@ func handlePass(c interfaces.GameCommunication, gameId, playerId uuid.UUID, _ js
 		return err
 	}
 
-	playerCount, err := db.PlayerTypeCount(gameId, playerType)
+	playerCount, err := C_PLAYER.For(gameId).Length()
 	if err != nil {
 		return err
 	}

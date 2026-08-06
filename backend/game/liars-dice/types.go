@@ -73,8 +73,8 @@ func loadPublicGameState(gameId uuid.UUID) (PublicGameState, error) {
 			errs = append(errs, err)
 		}
 	}
-
-	players, err := db.PlayerTypeGetAll(gameId, playerType)
+	pTracker := C_PLAYER.For(gameId)
+	players, err := pTracker.GetAll()
 	addErr(err)
 	hb, err := GD_BID.Get(gameId)
 	addErr(err)
@@ -83,8 +83,7 @@ func loadPublicGameState(gameId uuid.UUID) (PublicGameState, error) {
 
 	currentPlayer := uuid.Nil
 	if !gameOver {
-		cursor := db.GetCursor(gameId, playerType)
-		currentPlayer, err = cursor.Current()
+		currentPlayer, err = pTracker.Current()
 		addErr(err)
 	}
 
@@ -112,3 +111,5 @@ var (
 	PD_DICE = db.PlayerProperty[int]{Key: "dice"}
 	PD_HAND = db.PlayerProperty[[]int]{Key: "hand"}
 )
+
+var C_PLAYER = db.Cursor{Key: "player"}

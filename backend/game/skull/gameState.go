@@ -29,7 +29,7 @@ func getPublicGameState(gameId uuid.UUID) (*PublicGameState, error) {
 }
 
 func getPrivateGameState(gameId uuid.UUID, playerId uuid.UUID) (*PrivateGameState, error) {
-	if !db.PlayerIsType(gameId, playerId, playerType) {
+	if !C_PLAYER.For(gameId).HasItem(playerId) {
 		return nil, nil
 	}
 

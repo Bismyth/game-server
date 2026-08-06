@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/rand/v2"
 
-	"github.com/Bismyth/game-server/db"
 	"github.com/Bismyth/game-server/interfaces"
 	"github.com/google/uuid"
 )
@@ -82,7 +81,7 @@ func flippedSkull(c interfaces.GameCommunication, gameId uuid.UUID, playerId uui
 	}
 
 	if len(hand) <= 1 {
-		err := db.RemoveFromCursor(gameId, playerId, playerType)
+		err := C_PLAYER.For(gameId).RemoveTarget(playerId)
 		if err != nil {
 			return err
 		}
@@ -100,8 +99,7 @@ func flippedSkull(c interfaces.GameCommunication, gameId uuid.UUID, playerId uui
 		PD_TILES.MustSet(gameId, playerId, hand)
 	}
 
-	cursor := db.GetCursor(gameId, playerType)
-	err = cursor.SeekIndex(target)
+	err = C_PLAYER.For(gameId).SeekIndex(target)
 	if err != nil {
 		return err
 	}
@@ -130,7 +128,7 @@ func flippedBid(c interfaces.GameCommunication, gameId, playerId uuid.UUID) erro
 		}
 		return nil
 	}
-	cursor := db.GetCursor(gameId, playerType)
+	cursor := C_PLAYER.For(gameId)
 	err = cursor.SeekIndex(playerId)
 	if err != nil {
 		return err

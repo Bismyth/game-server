@@ -67,7 +67,7 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) (err error) {
 	})
 
 	for _, player := range players {
-		err = db.PlayerGiveType(gameId, player, playerType)
+		err = C_PLAYER.For(gameId).Add(player)
 		if err != nil {
 			return
 		}
@@ -82,8 +82,7 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) (err error) {
 
 	PGS_ROUND.MustSet(gameId, 1)
 
-	c := db.GetCursor(gameId, playerType)
-	c.Reset()
+	C_PLAYER.For(gameId).Reset()
 
 	_, err = cachePublicGameState(gameId)
 	if err != nil {
@@ -108,9 +107,7 @@ func (h *Handler) HandleAction(c interfaces.GameCommunication, gameId uuid.UUID,
 	if err != nil {
 		return err
 	}
-
-	cursor := db.GetCursor(gameId, playerType)
-	current, err := cursor.Current()
+	current, err := C_PLAYER.For(gameId).Current()
 	if err != nil {
 		return err
 	}
@@ -164,7 +161,7 @@ func (h *Handler) HandleReady(c interfaces.GameCommunication, gameId uuid.UUID, 
 }
 
 func (h *Handler) HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error {
-	err := db.RemoveFromCursor(gameId, playerId, playerType)
+	err := C_PLAYER.For(gameId).RemoveTarget(playerId)
 	if err != nil {
 		return err
 	}

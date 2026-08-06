@@ -84,7 +84,7 @@ func loadPublicGameState(gameId uuid.UUID) (PublicGameState, error) {
 	playerLeft, err := PGS_PLAYER_LEFT.Get(gameId)
 	addErr(err)
 
-	players, err := db.PlayerTypeGetAll(gameId, playerType)
+	players, err := C_PLAYER.For(gameId).GetAll()
 	addErr(err)
 
 	points, err := db.LoadPlayerProperty(gameId, players, "points", func(v int) (int, error) {
@@ -113,11 +113,8 @@ func loadPublicGameState(gameId uuid.UUID) (PublicGameState, error) {
 	addErr(err)
 
 	var turn uuid.UUID
-	cursor := db.GetCursor(gameId, playerType)
-	if cursor != nil {
-		turn, err = cursor.Current()
-		addErr(err)
-	}
+	turn, err = C_PLAYER.For(gameId).Current()
+	addErr(err)
 
 	if len(errs) > 0 {
 		return PublicGameState{}, errors.Join(errs...)
@@ -138,7 +135,9 @@ func loadPublicGameState(gameId uuid.UUID) (PublicGameState, error) {
 	}, nil
 }
 
-const playerType = "player"
+var (
+	C_PLAYER = db.Cursor{Key: "player"}
+)
 
 var (
 	PGS_BID         = db.Property[int]{Key: "bid"}

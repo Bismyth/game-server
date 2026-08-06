@@ -9,21 +9,16 @@ import (
 )
 
 func progressTurn(c interfaces.GameCommunication, gameId uuid.UUID) error {
-	cursor := db.GetCursor(gameId, playerType)
-	nextPlayer, err := cursor.Next()
+	nextPlayer, err := C_PLAYER.For(gameId).Next()
 	if err != nil {
 		return err
 	}
 
-	err = cachePublicGameState(gameId)
+	publicGs, err := cachePublicGameState(gameId)
 	if err != nil {
 		return err
 	}
 
-	publicGs, err := getPublicGameState(gameId)
-	if err != nil {
-		return err
-	}
 	gs := GameState{Public: publicGs}
 
 	c.SendGlobal(gs)
@@ -33,7 +28,7 @@ func progressTurn(c interfaces.GameCommunication, gameId uuid.UUID) error {
 }
 
 func newRound(c interfaces.GameCommunication, gameId uuid.UUID, pr *RoundInfo) error {
-	players, err := db.PlayerTypeGetAll(gameId, playerType)
+	players, err := C_PLAYER.For(gameId).GetAll()
 	if err != nil {
 		return err
 	}
@@ -105,7 +100,7 @@ func generatePreviousRound(gameId uuid.UUID, pvInfo *ParsedRoundInfo) (*RoundInf
 		return &roundInfo, nil
 	}
 
-	players, err := db.PlayerTypeGetAll(gameId, playerType)
+	players, err := C_PLAYER.For(gameId).GetAll()
 	if err != nil {
 		return nil, err
 	}
@@ -146,18 +141,12 @@ func endGame(c interfaces.GameCommunication, gameId uuid.UUID, pr *RoundInfo) er
 		return err
 	}
 
-	err = cachePublicGameState(gameId)
+	pGs, err := cachePublicGameState(gameId)
 	if err != nil {
 		return err
 	}
 
 	c.EndGame()
-
-	pGs, err := getPublicGameState(gameId)
-	if err != nil {
-		return err
-	}
-
 	c.SendGlobal(GameState{
 		Public: pGs,
 	})
@@ -171,18 +160,12 @@ func endGame(c interfaces.GameCommunication, gameId uuid.UUID, pr *RoundInfo) er
 }
 
 func cleanup(gameId uuid.UUID) error {
-	c := db.GetCursor(gameId, playerType)
-	err := c.Delete()
+	err := C_PLAYER.For(gameId).Delete()
 	if err != nil {
 		return err
 	}
 
 	err = db.ExpireCache(gameId, cacheExpireTime)
-	if err != nil {
-		return err
-	}
-
-	err = db.DeletePlayerTypeList(gameId, playerType)
 	if err != nil {
 		return err
 	}
