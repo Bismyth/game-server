@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/Bismyth/game-server/db"
 	"github.com/Bismyth/game-server/interfaces"
 	"github.com/google/uuid"
 )
@@ -15,35 +14,14 @@ func handlePlace(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid
 	if err != nil {
 		return err
 	}
+	currentTilesPlaced := PD_TILES_PLACED.MustGetPD(gameId, playerId)
 
-	currentTilesPlaced, err := GetPlayerProperty[[]Tile](gameId, playerId, pd_tilesPlaced)
-	if err != nil {
-		return err
-	}
-
-	turn, err := GetProperty[uuid.UUID](gameId, d_currentTurn)
-	if err != nil {
-		return err
-	}
-
-	if len(currentTilesPlaced) > 0 && turn != playerId {
-		return fmt.Errorf("not your turn")
-	}
-
-	bid, err := GetProperty[int](gameId, d_bid)
-	if err != nil {
-		return err
-	}
-
+	bid := PGS_BID.MustGet(gameId)
 	if bid > 0 {
 		return fmt.Errorf("cant place tile if bid has been made")
 	}
 
-	hand, err := GetPlayerProperty[[]Tile](gameId, playerId, pd_tiles)
-	if err != nil {
-		return err
-	}
-
+	hand := PD_TILES.MustGetPD(gameId, playerId)
 	if len(currentTilesPlaced) == len(hand) {
 		return fmt.Errorf("no more tiles to place")
 	}
@@ -55,49 +33,19 @@ func handlePlace(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid
 	}
 
 	currentTilesPlaced = append(currentTilesPlaced, placeData.Tile)
-	err = SetPlayerProperty(gameId, playerId, pd_tilesPlaced, currentTilesPlaced)
-	if err != nil {
-		return err
-	}
-	cursor := db.GetCursor(gameId, playerType)
-	if turn == uuid.Nil {
-		numTilesPlaced, err := countTilesPlaced(gameId)
-		if err != nil {
-			return err
-		}
-		if allPlayersTilesPlaced(numTilesPlaced) {
-			currentPlayer, err := cursor.Current()
-			if err != nil {
-				return err
-			}
-			err = SetProperty(gameId, d_currentTurn, currentPlayer)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		nextPlayer, err := cursor.Next()
-		if err != nil {
-			return err
-		}
-		err = SetProperty(gameId, d_currentTurn, nextPlayer)
+	PD_TILES_PLACED.MustSet(gameId, playerId, currentTilesPlaced)
+
+	if len(currentTilesPlaced) > 1 {
+		_, err := C_PLAYER.For(gameId).Next()
 		if err != nil {
 			return err
 		}
 	}
 
-	err = cachePublicGameState(gameId)
+	err = updatePublicGameState(c, gameId)
 	if err != nil {
 		return err
 	}
-
-	gs, err := getPublicGameState(gameId)
-	if err != nil {
-		return err
-	}
-
-	c.SendGlobal(GameState{Public: gs})
-
 	ps, err := getPrivateGameState(gameId, playerId)
 	if err != nil {
 		return err

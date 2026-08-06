@@ -3,13 +3,16 @@ package liarsdice
 import (
 	"fmt"
 
-	"github.com/Bismyth/game-server/db"
 	"github.com/Bismyth/game-server/interfaces"
 	"github.com/google/uuid"
 )
 
 func getAllDice(gameId uuid.UUID) ([]int, error) {
-	hands, err := db.GetMultiPlayerProperty[[]int](gameId, "hand", playerType)
+	players, err := C_PLAYER.For(gameId).GetAll()
+	if err != nil {
+		return nil, err
+	}
+	hands, err := PD_HAND.GetMulti(gameId, players)
 	if err != nil {
 		return nil, err
 	}
@@ -24,10 +27,7 @@ func getAllDice(gameId uuid.UUID) ([]int, error) {
 
 // returns true if bid was met, false if bid was a lie
 func evalBid(gameId uuid.UUID) (bool, error) {
-	currentBid, err := GetProperty[string](gameId, d_bid)
-	if err != nil {
-		return false, err
-	}
+	currentBid := GD_BID.MustGet(gameId)
 
 	a, f, err := parseBid(currentBid)
 	if err != nil {
@@ -48,21 +48,20 @@ func evalBid(gameId uuid.UUID) (bool, error) {
 	return trueAmount >= a, nil
 }
 
-func loseDiceAtCursor(gameId uuid.UUID, playerCursor *db.Cursor) (int, error) {
-
-	playerId, err := playerCursor.Current()
+func currentPlayerLoseDice(gameId uuid.UUID) (int, error) {
+	playerId, err := C_PLAYER.For(gameId).Current()
 	if err != nil {
 		return 0, err
 	}
 
-	amount, err := db.GetPlayerProperty[int](gameId, playerId, "dice")
+	amount, err := PD_DICE.Get(gameId, playerId)
 	if err != nil {
 		return 0, err
 	}
 
 	newAmount := amount - 1
 
-	err = db.SetPlayerProperty(gameId, playerId, "dice", newAmount)
+	err = PD_DICE.Set(gameId, playerId, newAmount)
 	if err != nil {
 		return 0, err
 	}
@@ -79,25 +78,25 @@ func handleCall(c interfaces.GameCommunication, gameId uuid.UUID) error {
 		return fmt.Errorf("could not determine call")
 	}
 
-	playerCursor := db.GetCursor(gameId, playerType)
+	playerTracker := C_PLAYER.For(gameId)
 
-	cu, err := playerCursor.Current()
+	cu, err := playerTracker.Current()
 	if err != nil {
 		return err
 	}
 	pvInfo.CallUser = cu
 
-	pv, err := playerCursor.PeekPrevious()
+	pv, err := playerTracker.PeekPrevious()
 	if err != nil {
 		return err
 	}
 	pvInfo.LastBid = pv
 
 	if !bidRight {
-		playerCursor.Previous()
+		playerTracker.Previous()
 	}
 
-	lostUser, err := playerCursor.Current()
+	lostUser, err := playerTracker.Current()
 	if err != nil {
 		return err
 	}
@@ -108,13 +107,13 @@ func handleCall(c interfaces.GameCommunication, gameId uuid.UUID) error {
 		return err
 	}
 
-	a, err := loseDiceAtCursor(gameId, playerCursor)
+	a, err := currentPlayerLoseDice(gameId)
 	if err != nil {
 		return err
 	}
 
 	if a <= 0 {
-		err := playerCursor.Remove()
+		err := playerTracker.Remove()
 		if err != nil {
 			return err
 		}
@@ -129,14 +128,14 @@ func handleCall(c interfaces.GameCommunication, gameId uuid.UUID) error {
 	}
 
 	if !bidRight && a > 0 {
-		_, err := playerCursor.Next()
+		_, err := playerTracker.Next()
 		if err != nil {
 			return err
 		}
 	}
 
 	if bidRight && a == 0 {
-		_, err = playerCursor.Previous()
+		_, err = playerTracker.Previous()
 		if err != nil {
 			return err
 		}

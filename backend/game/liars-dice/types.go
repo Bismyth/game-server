@@ -1,6 +1,8 @@
 package liarsdice
 
 import (
+	"errors"
+
 	"github.com/Bismyth/game-server/db"
 	"github.com/google/uuid"
 )
@@ -58,16 +60,56 @@ type Options struct {
 	StartingDice int `json:"startingDice"`
 }
 
-type DBProperty string
+var (
+	GD_BID            = db.Property[string]{Key: "bid"}
+	GD_PREVIOUS_ROUND = db.Property[RoundInfo]{Key: "previousRound"}
+	GD_GAME_OVER      = db.Property[bool]{Key: "gameOver"}
+)
 
-const d_bid DBProperty = "bid"
-const d_previousRound DBProperty = "previousRound"
-const d_gameOver DBProperty = "gameOver"
+func loadPublicGameState(gameId uuid.UUID) (PublicGameState, error) {
+	var errs []error
+	addErr := func(err error) {
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+	pTracker := C_PLAYER.For(gameId)
+	players, err := pTracker.GetAll()
+	addErr(err)
+	hb, err := GD_BID.Get(gameId)
+	addErr(err)
+	gameOver, err := GD_GAME_OVER.Get(gameId)
+	addErr(err)
 
-func GetProperty[T any](gameId uuid.UUID, p DBProperty) (T, error) {
-	return db.GetGameProperty[T](gameId, string(p))
+	currentPlayer := uuid.Nil
+	if !gameOver {
+		currentPlayer, err = pTracker.Current()
+		addErr(err)
+	}
+
+	playerDice, err := PD_DICE.GetMap(gameId, players)
+	addErr(err)
+
+	pr, err := GD_PREVIOUS_ROUND.Get(gameId)
+	addErr(err)
+
+	if len(errs) > 0 {
+		return PublicGameState{}, errors.Join(errs...)
+	}
+
+	return PublicGameState{
+		TurnOrder:     players,
+		HighestBid:    hb,
+		GameOver:      gameOver,
+		PlayerTurn:    currentPlayer,
+		DiceAmounts:   playerDice,
+		PreviousRound: pr,
+	}, nil
 }
 
-func SetProperty[T any](gameId uuid.UUID, p DBProperty, data T) error {
-	return db.SetGameProperty(gameId, string(p), data)
-}
+var (
+	PD_DICE = db.PlayerProperty[int]{Key: "dice"}
+	PD_HAND = db.PlayerProperty[[]int]{Key: "hand"}
+)
+
+var C_PLAYER = db.Cursor{Key: "player"}

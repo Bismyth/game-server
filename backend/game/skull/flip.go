@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/rand/v2"
 
-	"github.com/Bismyth/game-server/db"
 	"github.com/Bismyth/game-server/interfaces"
 	"github.com/google/uuid"
 )
@@ -30,7 +29,7 @@ func handleFlip(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data
 	if !ok {
 		return fmt.Errorf("invalid target")
 	}
-	tp, err := GetPlayerProperty[[]Tile](gameId, flipData.Player, pd_tilesPlaced)
+	tp, err := PD_TILES_PLACED.Get(gameId, flipData.Player)
 	if err != nil {
 		return fmt.Errorf("failed to fetch targets placed tiles")
 	}
@@ -41,10 +40,8 @@ func handleFlip(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data
 
 	tilesRevealed := len(tr) + 1
 	tile := tp[len(tp)-tilesRevealed]
-	err = SetPlayerProperty(gameId, flipData.Player, pd_tilesRevealed, tilesRevealed)
-	if err != nil {
-		return err
-	}
+
+	PD_TILES_REVEALED.MustSet(gameId, flipData.Player, tilesRevealed)
 
 	if tile == Skull {
 		err = flippedSkull(c, gameId, playerId, flipData.Player)
@@ -76,19 +73,18 @@ func handleFlip(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data
 }
 
 func flippedSkull(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID, target uuid.UUID) error {
+	hand := PD_TILES.MustGetPD(gameId, playerId)
 
-	hand, err := GetPlayerProperty[[]Tile](gameId, playerId, pd_tiles)
-	if err != nil {
-		return err
-	}
-
-	err = updatePublicGameState(c, gameId)
+	err := updatePublicGameState(c, gameId)
 	if err != nil {
 		return err
 	}
 
 	if len(hand) <= 1 {
-		removeActivePlayer(gameId, playerId)
+		err := C_PLAYER.For(gameId).RemoveTarget(playerId)
+		if err != nil {
+			return err
+		}
 		end, err := checkEnd(gameId)
 		if err != nil {
 			return err
@@ -100,14 +96,10 @@ func flippedSkull(c interfaces.GameCommunication, gameId uuid.UUID, playerId uui
 		randomIndex := rand.IntN(len(hand))
 		hand[randomIndex] = hand[len(hand)-1]
 		hand = hand[:len(hand)-1]
-		err = SetPlayerProperty(gameId, playerId, pd_tiles, hand)
-		if err != nil {
-			return err
-		}
+		PD_TILES.MustSet(gameId, playerId, hand)
 	}
 
-	cursor := db.GetCursor(gameId, playerType)
-	err = cursor.SeekIndex(target)
+	err = C_PLAYER.For(gameId).SeekIndex(target)
 	if err != nil {
 		return err
 	}
@@ -120,55 +112,14 @@ func flippedSkull(c interfaces.GameCommunication, gameId uuid.UUID, playerId uui
 	return nil
 }
 
-func removeActivePlayer(gameId uuid.UUID, playerId uuid.UUID) error {
-	isPlayer := db.PlayerIsType(gameId, playerId, playerType)
-	if !isPlayer {
-		return nil
-	}
-	cursor := db.GetCursor(gameId, playerType)
-	current, err := cursor.Current()
-	if err != nil {
-		return err
-	}
-	if current == playerId {
-		err := cursor.Remove()
-		if err != nil {
-			return err
-		}
-	} else {
-		err := cursor.SeekIndex(playerId)
-		if err != nil {
-			return err
-		}
-		err = cursor.Remove()
-		if err != nil {
-			return err
-		}
-		err = cursor.SeekIndex(current)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func flippedBid(c interfaces.GameCommunication, gameId, playerId uuid.UUID) error {
 	err := updatePublicGameState(c, gameId)
 	if err != nil {
 		return err
 	}
-
-	currentPoints, err := GetPlayerProperty[int](gameId, playerId, pd_points)
-	if err != nil {
-		return err
-	}
-
+	currentPoints := PD_POINTS.MustGetPD(gameId, playerId)
 	newPoints := currentPoints + 1
-	err = SetPlayerProperty(gameId, playerId, pd_points, newPoints)
-	if err != nil {
-		return err
-	}
+	PD_POINTS.MustSet(gameId, playerId, newPoints)
 
 	if newPoints >= 2 {
 		err = endGame(c, gameId)
@@ -177,7 +128,7 @@ func flippedBid(c interfaces.GameCommunication, gameId, playerId uuid.UUID) erro
 		}
 		return nil
 	}
-	cursor := db.GetCursor(gameId, playerType)
+	cursor := C_PLAYER.For(gameId)
 	err = cursor.SeekIndex(playerId)
 	if err != nil {
 		return err
@@ -196,31 +147,17 @@ func flippedBid(c interfaces.GameCommunication, gameId, playerId uuid.UUID) erro
 }
 
 func startFlipper(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error {
-	err := SetProperty(gameId, d_flipper, playerId)
-	if err != nil {
-		return err
-	}
+	PGS_FLIPPER.MustSet(gameId, playerId)
 
-	tiles, err := GetPlayerProperty[[]Tile](gameId, playerId, pd_tilesPlaced)
-	if err != nil {
-		return err
-	}
+	tiles := PD_TILES_PLACED.MustGetPD(gameId, playerId)
+	PD_TILES_REVEALED.MustSet(gameId, playerId, len(tiles))
 
-	err = SetPlayerProperty(gameId, playerId, pd_tilesRevealed, len(tiles))
-	if err != nil {
-		return err
-	}
-
-	bid, err := GetProperty[int](gameId, d_bid)
-	if err != nil {
-		return err
-	}
-
+	bid := PGS_BID.MustGet(gameId)
 	roses := 0
 
 	for i := len(tiles) - 1; i >= 0; i-- {
 		if tiles[i] == Skull {
-			err = flippedSkull(c, gameId, playerId, playerId)
+			err := flippedSkull(c, gameId, playerId, playerId)
 			if err != nil {
 				return err
 			}
@@ -228,16 +165,13 @@ func startFlipper(c interfaces.GameCommunication, gameId uuid.UUID, playerId uui
 		} else {
 			roses += 1
 			if roses >= bid {
-				err = SetPlayerProperty(gameId, playerId, pd_tilesRevealed, len(tiles)-i)
-				if err != nil {
-					return err
-				}
+				PD_TILES_REVEALED.MustSet(gameId, playerId, len(tiles)-i)
 				return flippedBid(c, gameId, playerId)
 			}
 		}
 	}
 
-	err = updatePublicGameState(c, gameId)
+	err := updatePublicGameState(c, gameId)
 	if err != nil {
 		return err
 	}

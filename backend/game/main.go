@@ -3,6 +3,8 @@ package game
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"runtime/debug"
 
 	"github.com/Bismyth/game-server/db"
 	"github.com/Bismyth/game-server/interfaces"
@@ -43,7 +45,14 @@ func getGameType(gameId uuid.UUID) (GameHandler, error) {
 	return h, nil
 }
 
-func HandleAction(c interfaces.GameCommunication, roomId, playerId uuid.UUID, data json.RawMessage) error {
+func HandleAction(c interfaces.GameCommunication, roomId, playerId uuid.UUID, data json.RawMessage) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("internal server error: %v", r)
+			log.Printf("recovered panic: %v\n%s", r, debug.Stack())
+		}
+	}()
+
 	h, err := getGameType(roomId)
 	if err != nil {
 		return err
@@ -61,7 +70,14 @@ func HandleAction(c interfaces.GameCommunication, roomId, playerId uuid.UUID, da
 	return h.HandleAction(c, roomId, playerId, data)
 }
 
-func HandleReady(c interfaces.GameCommunication, roomId, playerId uuid.UUID, data json.RawMessage) error {
+func HandleReady(c interfaces.GameCommunication, roomId, playerId uuid.UUID, data json.RawMessage) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("internal server error: %v", r)
+			log.Printf("recovered panic: %v\n%s", r, debug.Stack())
+		}
+	}()
+
 	h, err := getGameType(roomId)
 	if err != nil {
 		return err
@@ -78,7 +94,14 @@ func HandleReady(c interfaces.GameCommunication, roomId, playerId uuid.UUID, dat
 	return h.HandleReady(c, roomId, playerId)
 }
 
-func New(roomId uuid.UUID) error {
+func New(roomId uuid.UUID) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("internal server error: %v", r)
+			log.Printf("recovered panic: %v\n%s", r, debug.Stack())
+		}
+	}()
+
 	gameType, err := db.GetRoomProperty[string](roomId, "gameType")
 	if err != nil {
 		return err
@@ -118,7 +141,14 @@ func New(roomId uuid.UUID) error {
 	return nil
 }
 
-func HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error {
+func HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("internal server error: %v", r)
+			log.Printf("recovered panic: %v\n%s", r, debug.Stack())
+		}
+	}()
+
 	gameType, err := db.GetRoomProperty[string](gameId, "gameType")
 	if err != nil {
 		return fmt.Errorf("failed to get game type")

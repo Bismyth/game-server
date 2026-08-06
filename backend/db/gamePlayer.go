@@ -11,12 +11,28 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func PlayerGiveType(gameId uuid.UUID, playerId uuid.UUID, playerType string) error {
+type Cursor struct {
+	Key string
+}
 
+func (c Cursor) For(g uuid.UUID) BoundCursor {
+	return BoundCursor{gameId: g, c: c}
+}
+
+type BoundCursor struct {
+	gameId uuid.UUID
+	c      Cursor
+}
+
+func (bc BoundCursor) Key() string {
+	return it(gameHashName, bc.gameId, bc.c.Key)
+}
+
+func (c BoundCursor) Add(id uuid.UUID) error {
 	conn := getConn()
 	ctx := context.Background()
 
-	err := conn.RPush(ctx, it(gameHashName, gameId, playerType), playerId.String()).Err()
+	err := conn.RPush(ctx, c.Key(), id.String()).Err()
 	if err != nil {
 		return err
 	}
@@ -24,15 +40,11 @@ func PlayerGiveType(gameId uuid.UUID, playerId uuid.UUID, playerType string) err
 	return nil
 }
 
-func PlayerRemType(gameId uuid.UUID, userId uuid.UUID, userType string) error {
-	return fmt.Errorf("not implemented")
-}
-
-func PlayerTypeGetAll(gameId uuid.UUID, playerType string) ([]uuid.UUID, error) {
+func (c BoundCursor) GetAll() ([]uuid.UUID, error) {
 	conn := getConn()
 	ctx := context.Background()
 
-	idStrings, err := conn.LRange(ctx, it(gameHashName, gameId, playerType), 0, -1).Result()
+	idStrings, err := conn.LRange(ctx, c.Key(), 0, -1).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -40,11 +52,11 @@ func PlayerTypeGetAll(gameId uuid.UUID, playerType string) ([]uuid.UUID, error) 
 	return ParseUUIDList(idStrings)
 }
 
-func PlayerTypeCount(gameId uuid.UUID, playerType string) (int64, error) {
+func (c BoundCursor) Length() (int64, error) {
 	conn := getConn()
 	ctx := context.Background()
 
-	count, err := conn.LLen(ctx, it(gameHashName, gameId, playerType)).Result()
+	count, err := conn.LLen(ctx, c.Key()).Result()
 	if err != nil {
 		return -1, err
 	}
@@ -52,48 +64,56 @@ func PlayerTypeCount(gameId uuid.UUID, playerType string) (int64, error) {
 	return count, nil
 }
 
-func PlayerIsType(gameId uuid.UUID, playerId uuid.UUID, playerType string) bool {
-	conn := getConn()
-	ctx := context.Background()
-
-	_, err := conn.LPos(ctx, it(gameHashName, gameId, playerType), playerId.String(), redis.LPosArgs{}).Result()
-
-	return err == nil
-}
-
-func DeletePlayerTypeList(gameId uuid.UUID, playerType string) error {
-	conn := getConn()
-	ctx := context.Background()
-
-	err := conn.Del(ctx, it(gameHashName, gameId, playerType)).Err()
-
+func (c BoundCursor) RemoveTarget(playerId uuid.UUID) error {
+	hasItem := c.HasItem(playerId)
+	if !hasItem {
+		return nil
+	}
+	current, err := c.Current()
 	if err != nil {
 		return err
+	}
+	if current == playerId {
+		err := c.Remove()
+		if err != nil {
+			return err
+		}
+	} else {
+		err := c.SeekIndex(playerId)
+		if err != nil {
+			return err
+		}
+		err = c.Remove()
+		if err != nil {
+			return err
+		}
+		err = c.SeekIndex(current)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-type Cursor struct {
-	key string
-}
-
-func GetCursor(gameId uuid.UUID, t string) *Cursor {
-	c := &Cursor{
-		key: it(gameHashName, gameId, t),
-	}
-	return c
-}
-
-func (c *Cursor) Reset() {
-	c.SetIndex(0)
-}
-
-func (c *Cursor) GetIndex() int64 {
+func (c BoundCursor) HasItem(id uuid.UUID) bool {
 	conn := getConn()
 	ctx := context.Background()
 
-	s, err := conn.Get(ctx, ic(c.key)).Result()
+	_, err := conn.LPos(ctx, c.Key(), id.String(), redis.LPosArgs{}).Result()
+
+	return err == nil
+}
+
+func (c BoundCursor) Reset() {
+	c.SetIndex(0)
+}
+
+func (c BoundCursor) GetIndex() int64 {
+	conn := getConn()
+	ctx := context.Background()
+
+	s, err := conn.Get(ctx, ic(c.Key())).Result()
 	if errors.Is(err, redis.Nil) {
 		return 0
 	} else if err != nil {
@@ -107,21 +127,21 @@ func (c *Cursor) GetIndex() int64 {
 	return i
 }
 
-func (c *Cursor) SetIndex(i int64) {
+func (c BoundCursor) SetIndex(i int64) {
 	conn := getConn()
 	ctx := context.Background()
 
-	err := conn.Set(ctx, ic(c.key), fmt.Sprintf("%d", i), 0).Err()
+	err := conn.Set(ctx, ic(c.Key()), fmt.Sprintf("%d", i), 0).Err()
 	if err != nil {
 		log.Panic("failed to get cursor index")
 	}
 }
 
-func (c *Cursor) wrapIndex(i int64) int64 {
+func (c BoundCursor) wrapIndex(i int64) int64 {
 	conn := getConn()
 	ctx := context.Background()
 
-	size, err := conn.LLen(ctx, c.key).Result()
+	size, err := conn.LLen(ctx, c.Key()).Result()
 	if err != nil {
 		log.Panic("failed to get size of index")
 	}
@@ -132,29 +152,29 @@ func (c *Cursor) wrapIndex(i int64) int64 {
 	return ((i % size) + size) % size
 }
 
-func (c *Cursor) Next() (uuid.UUID, error) {
+func (c BoundCursor) Next() (uuid.UUID, error) {
 	c.Shift(1)
 	return c.Current()
 }
 
-func (c *Cursor) PeekNext() (uuid.UUID, error) {
+func (c BoundCursor) PeekNext() (uuid.UUID, error) {
 	return c.PeekIndex(c.wrapIndex(c.GetIndex() + 1))
 }
 
-func (c *Cursor) Previous() (uuid.UUID, error) {
+func (c BoundCursor) Previous() (uuid.UUID, error) {
 	c.Shift(-1)
 	return c.Current()
 }
 
-func (c *Cursor) PeekPrevious() (uuid.UUID, error) {
+func (c BoundCursor) PeekPrevious() (uuid.UUID, error) {
 	return c.PeekIndex(c.wrapIndex(c.GetIndex() - 1))
 }
 
-func (c *Cursor) PeekIndex(i int64) (uuid.UUID, error) {
+func (c BoundCursor) PeekIndex(i int64) (uuid.UUID, error) {
 	conn := getConn()
 	ctx := context.Background()
 
-	idString, err := conn.LIndex(ctx, c.key, i).Result()
+	idString, err := conn.LIndex(ctx, c.Key(), i).Result()
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("could not get player index")
 	}
@@ -167,12 +187,12 @@ func (c *Cursor) PeekIndex(i int64) (uuid.UUID, error) {
 	return id, nil
 }
 
-func (c *Cursor) Current() (uuid.UUID, error) {
+func (c BoundCursor) Current() (uuid.UUID, error) {
 	return c.PeekIndex(c.GetIndex())
 }
 
 // Ends with the cursor on the next value
-func (c *Cursor) Remove() error {
+func (c BoundCursor) Remove() error {
 	conn := getConn()
 	ctx := context.Background()
 
@@ -181,7 +201,7 @@ func (c *Cursor) Remove() error {
 		return err
 	}
 
-	err = conn.LRem(ctx, c.key, 1, v.String()).Err()
+	err = conn.LRem(ctx, c.Key(), 1, v.String()).Err()
 	if err != nil {
 		return err
 	}
@@ -191,11 +211,11 @@ func (c *Cursor) Remove() error {
 	return nil
 }
 
-func (c *Cursor) SeekIndex(id uuid.UUID) error {
+func (c BoundCursor) SeekIndex(id uuid.UUID) error {
 	conn := getConn()
 	ctx := context.Background()
 
-	index, err := conn.LPos(ctx, c.key, id.String(), redis.LPosArgs{}).Result()
+	index, err := conn.LPos(ctx, c.Key(), id.String(), redis.LPosArgs{}).Result()
 	if err != nil {
 		return err
 	}
@@ -205,20 +225,20 @@ func (c *Cursor) SeekIndex(id uuid.UUID) error {
 	return nil
 }
 
-func (c *Cursor) Shift(n int64) {
+func (c BoundCursor) Shift(n int64) {
 	c.SetIndex(c.wrapIndex(c.GetIndex() + n))
 }
 
-func (c *Cursor) Delete() error {
+func (c BoundCursor) Delete() error {
 	conn := getConn()
 	ctx := context.Background()
 
-	err := conn.Del(ctx, c.key).Err()
+	err := conn.Del(ctx, c.Key()).Err()
 	if err != nil {
 		return err
 	}
 
-	err = conn.Del(ctx, ic(c.key)).Err()
+	err = conn.Del(ctx, ic(c.Key())).Err()
 	if err != nil {
 		return err
 	}

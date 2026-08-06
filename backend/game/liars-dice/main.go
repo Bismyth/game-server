@@ -13,8 +13,6 @@ import (
 
 const Code = "liarsdice"
 
-const playerType = "player"
-
 const cacheExpireTime time.Duration = 2 * time.Hour
 
 type Handler struct{}
@@ -53,11 +51,11 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) error {
 		return fmt.Errorf("not enough players")
 	}
 
-	if err := SetProperty(gameId, d_bid, ""); err != nil {
+	if err := GD_BID.Set(gameId, ""); err != nil {
 		return err
 	}
 
-	if err := SetProperty(gameId, d_gameOver, false); err != nil {
+	if err := GD_GAME_OVER.Set(gameId, false); err != nil {
 		return err
 	}
 
@@ -67,26 +65,28 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) error {
 	})
 
 	for _, player := range players {
-		if err := db.SetPlayerProperty(gameId, player, "dice", options.StartingDice); err != nil {
+		err := PD_DICE.Set(gameId, player, options.StartingDice)
+		if err != nil {
 			return err
 		}
-		db.PlayerGiveType(gameId, player, playerType)
+		err = C_PLAYER.For(gameId).Add(player)
+		if err != nil {
+			return err
+		}
 	}
 
 	pr := RoundInfo{
 		Round: 0,
 	}
-	err = SetProperty(gameId, d_previousRound, pr)
+	err = GD_PREVIOUS_ROUND.Set(gameId, pr)
 	if err != nil {
 		return err
 	}
 
-	c := db.GetCursor(gameId, playerType)
-	c.Reset()
-
+	C_PLAYER.For(gameId).Reset()
 	rollHands(gameId, players)
 
-	err = cachePublicGameState(gameId)
+	_, err = cachePublicGameState(gameId)
 	if err != nil {
 		return err
 	}
@@ -99,8 +99,7 @@ func (h *Handler) HandleAction(c interfaces.GameCommunication, gameId uuid.UUID,
 
 	var err error
 
-	cursor := db.GetCursor(gameId, playerType)
-	current, err := cursor.Current()
+	current, err := C_PLAYER.For(gameId).Current()
 	if err != nil {
 		return err
 	}
@@ -151,34 +150,15 @@ func (h *Handler) HandleReady(c interfaces.GameCommunication, gameId uuid.UUID, 
 }
 
 func (h *Handler) HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error {
-	isPlayer := db.PlayerIsType(gameId, playerId, playerType)
+	pTracker := C_PLAYER.For(gameId)
+	isPlayer := pTracker.HasItem(playerId)
 	if !isPlayer {
 		return nil
 	}
 
-	cursor := db.GetCursor(gameId, playerType)
-	current, err := cursor.Current()
+	err := pTracker.RemoveTarget(playerId)
 	if err != nil {
 		return err
-	}
-	if current == playerId {
-		err := cursor.Remove()
-		if err != nil {
-			return err
-		}
-	} else {
-		err := cursor.SeekIndex(playerId)
-		if err != nil {
-			return err
-		}
-		err = cursor.Remove()
-		if err != nil {
-			return err
-		}
-		err = cursor.SeekIndex(current)
-		if err != nil {
-			return err
-		}
 	}
 
 	end, err := checkEnd(gameId)
@@ -218,7 +198,7 @@ func (h *Handler) Cleanup(gameId uuid.UUID) error {
 }
 
 func checkEnd(gameId uuid.UUID) (bool, error) {
-	numPlayers, err := db.PlayerTypeCount(gameId, playerType)
+	numPlayers, err := C_PLAYER.For(gameId).Length()
 	if err != nil {
 		return false, err
 	}

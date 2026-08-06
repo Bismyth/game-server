@@ -190,7 +190,11 @@ const userActions = computed(() => {
     else if (gameData.publicState?.tilesPlaced[room.data.userId] == 0) {
     data.showMessage = true
     data.message = "Place your inital tile"
-  } else if (gameData.publicState?.flipper != '00000000-0000-0000-0000-000000000000') {
+  } else if (notAllTilesPlaced()) {
+    data.showMessage = true
+    data.message = 'Waiting for all players to place their first tile.'
+  } 
+  else if (gameData.publicState?.flipper != '00000000-0000-0000-0000-000000000000') {
     const total = gameData.publicState?.bid
   
     let flipped = 0
@@ -217,10 +221,7 @@ const userActions = computed(() => {
   } else if(gameData.publicState.bid > 0) {
     data.showMessage = true
     data.message = `The bid is at ${gameData.publicState.bid}`
-  } else if (notAllTilesPlaced()) {
-    data.showMessage = true
-    data.message = 'Waiting for all players to place their first tile.'
-  }
+  } 
   return data
 })
 

@@ -5,60 +5,18 @@ import (
 	"github.com/google/uuid"
 )
 
-func cachePublicGameState(gameId uuid.UUID) error {
-	gs := PublicGameState{}
-
-	players, err := db.PlayerTypeGetAll(gameId, playerType)
+func cachePublicGameState(gameId uuid.UUID) (*PublicGameState, error) {
+	gs, err := loadPublicGameState(gameId)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	gs.TurnOrder = players
-
-	hb, err := GetProperty[string](gameId, d_bid)
-	if err != nil {
-		return err
-	}
-	gs.HighestBid = hb
-
-	gameOver, err := GetProperty[bool](gameId, d_gameOver)
-	if err != nil {
-		return err
-	}
-	gs.GameOver = gameOver
-
-	if !gameOver {
-		cursor := db.GetCursor(gameId, playerType)
-		currentPLayer, err := cursor.Current()
-		if err != nil {
-			return err
-		}
-		gs.PlayerTurn = currentPLayer
-	}
-
-	playerDice := map[uuid.UUID]int{}
-
-	for _, player := range players {
-		num, err := db.GetPlayerProperty[int](gameId, player, "dice")
-		if err != nil {
-			return err
-		}
-		playerDice[player] = num
-	}
-	gs.DiceAmounts = playerDice
-
-	pr, err := GetProperty[RoundInfo](gameId, d_previousRound)
-	if err != nil {
-		return err
-	}
-	gs.PreviousRound = pr
 
 	err = db.SetGameCache(gameId, gs)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &gs, nil
 }
 
 func getPublicGameState(gameId uuid.UUID) (*PublicGameState, error) {
@@ -71,11 +29,11 @@ func getPublicGameState(gameId uuid.UUID) (*PublicGameState, error) {
 }
 
 func getPrivateGameState(gameId uuid.UUID, playerId uuid.UUID) (*PrivateGameState, error) {
-	if !db.PlayerIsType(gameId, playerId, playerType) {
+	if !C_PLAYER.For(gameId).HasItem(playerId) {
 		return nil, nil
 	}
 
-	hand, err := db.GetPlayerProperty[[]int](gameId, playerId, "hand")
+	hand, err := PD_HAND.Get(gameId, playerId)
 	if err != nil {
 		return nil, err
 	}

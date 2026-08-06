@@ -73,25 +73,6 @@ func GetPlayerProperty[T any](gameId uuid.UUID, playerId uuid.UUID, field string
 	return GetGameProperty[T](gameId, i(field, playerId))
 }
 
-func GetMultiPlayerProperty[T any](gameId uuid.UUID, field string, playerType string) ([]T, error) {
-	players, err := PlayerTypeGetAll(gameId, playerType)
-	if err != nil {
-		return nil, err
-	}
-
-	output := []T{}
-
-	for _, player := range players {
-		p, err := GetPlayerProperty[T](gameId, player, field)
-		if err != nil {
-			return nil, err
-		}
-		output = append(output, p)
-	}
-
-	return output, nil
-}
-
 func DeleteGame(gameId uuid.UUID) error {
 	conn := getConn()
 	ctx := context.Background()
