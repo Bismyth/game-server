@@ -87,7 +87,7 @@ func loadPublicGameState(gameId uuid.UUID) (PublicGameState, error) {
 		addErr(err)
 	}
 
-	playerDice, err := db.LoadAllProperty(gameId, players, PD_DICE, func(v int) (int, error) { return v, nil })
+	playerDice, err := PD_DICE.GetMap(gameId, players)
 	addErr(err)
 
 	pr, err := GD_PREVIOUS_ROUND.Get(gameId)

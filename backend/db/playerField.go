@@ -41,6 +41,26 @@ func (p PlayerProperty[T]) GetMulti(gameId uuid.UUID, players []uuid.UUID) ([]T,
 	return o, nil
 }
 
-func LoadAllProperty[T any, U any](gameId uuid.UUID, players []uuid.UUID, p PlayerProperty[T], cb func(T) (U, error)) (map[uuid.UUID]U, error) {
-	return LoadPlayerProperty(gameId, players, p.Key, cb)
+func (p PlayerProperty[T]) GetMap(gameId uuid.UUID, players []uuid.UUID) (map[uuid.UUID]T, error) {
+	o := make(map[uuid.UUID]T)
+	for _, id := range players {
+		v, err := p.Get(gameId, id)
+		if err != nil {
+			return o, err
+		}
+		o[id] = v
+	}
+	return o, nil
+}
+
+func MapApply[T any, U any](i map[uuid.UUID]T, cb func(v T) (U, error)) (map[uuid.UUID]U, error) {
+	o := make(map[uuid.UUID]U)
+	for id, ov := range i {
+		v, err := cb(ov)
+		if err != nil {
+			return o, err
+		}
+		o[id] = v
+	}
+	return o, nil
 }

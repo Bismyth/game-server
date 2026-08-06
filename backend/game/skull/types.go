@@ -87,9 +87,7 @@ func loadPublicGameState(gameId uuid.UUID) (PublicGameState, error) {
 	players, err := C_PLAYER.For(gameId).GetAll()
 	addErr(err)
 
-	points, err := db.LoadPlayerProperty(gameId, players, "points", func(v int) (int, error) {
-		return v, nil
-	})
+	points, err := PD_POINTS.GetMap(gameId, players)
 	addErr(err)
 
 	tilesPlaced := make(map[uuid.UUID]int)
@@ -107,7 +105,10 @@ func loadPublicGameState(gameId uuid.UUID) (PublicGameState, error) {
 		tilesRevealed[p] = tp[max(len(tp)-tr, 0):]
 	}
 	addErr(err)
-	tileCount, err := db.LoadAllProperty(gameId, players, PD_TILES, func(v []Tile) (int, error) {
+
+	playerTiles, err := PD_TILES.GetMap(gameId, players)
+	addErr(err)
+	tileCount, err := db.MapApply(playerTiles, func(v []Tile) (int, error) {
 		return len(v), nil
 	})
 	addErr(err)

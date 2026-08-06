@@ -73,23 +73,6 @@ func GetPlayerProperty[T any](gameId uuid.UUID, playerId uuid.UUID, field string
 	return GetGameProperty[T](gameId, i(field, playerId))
 }
 
-func LoadPlayerProperty[T any, U any](gameId uuid.UUID, players []uuid.UUID, property string, cb func(T) (U, error)) (map[uuid.UUID]U, error) {
-	o := make(map[uuid.UUID]U)
-	for _, p := range players {
-		d, err := GetPlayerProperty[T](gameId, p, property)
-		if err != nil {
-			return nil, err
-		}
-		v, err := cb(d)
-		if err != nil {
-			return nil, err
-		}
-		o[p] = v
-	}
-
-	return o, nil
-}
-
 func DeleteGame(gameId uuid.UUID) error {
 	conn := getConn()
 	ctx := context.Background()
