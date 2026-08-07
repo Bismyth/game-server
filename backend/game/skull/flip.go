@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/rand/v2"
 
+	"github.com/Bismyth/game-server/db"
+	"github.com/Bismyth/game-server/db/msg"
 	"github.com/Bismyth/game-server/interfaces"
 	"github.com/google/uuid"
 )
@@ -80,6 +82,8 @@ func flippedSkull(c interfaces.GameCommunication, gameId uuid.UUID, playerId uui
 		return err
 	}
 
+	db.GameEvent(gameId, c).Log(msg.Msg().Player(playerId).Text(" has flipped a ").Icon(skull_icon).String())
+
 	if len(hand) <= 1 {
 		err := C_PLAYER.For(gameId).RemoveTarget(playerId)
 		if err != nil {
@@ -120,6 +124,9 @@ func flippedBid(c interfaces.GameCommunication, gameId, playerId uuid.UUID) erro
 	currentPoints := PD_POINTS.MustGetPD(gameId, playerId)
 	newPoints := currentPoints + 1
 	PD_POINTS.MustSet(gameId, playerId, newPoints)
+	bid := PGS_BID.MustGet(gameId)
+
+	db.GameEvent(gameId, c).Log(msg.Msg().Player(playerId).Text(" has flipped all ").Bold(msg.Int(bid)).Text(" ").Icon(rose_icon).String())
 
 	if newPoints >= 2 {
 		err = endGame(c, gameId)
@@ -154,6 +161,8 @@ func startFlipper(c interfaces.GameCommunication, gameId uuid.UUID, playerId uui
 
 	bid := PGS_BID.MustGet(gameId)
 	roses := 0
+
+	db.GameEvent(gameId, c).Log(msg.Msg().Player(playerId).Text(" has won the bid with: ").Bold(msg.Int(bid)).String())
 
 	for i := len(tiles) - 1; i >= 0; i-- {
 		if tiles[i] == Skull {

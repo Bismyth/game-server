@@ -71,7 +71,7 @@ func handleBid(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.U
 	}
 
 	GD_BID.MustSet(gameId, bid)
-	db.GameEvent(gameId, c).Log(msg.Msg().Player(playerId).Text(" has bid ").Add(bidMsg(bid)).String())
+	db.GameEvent(gameId, c).Log(msg.Msg().Player(playerId).Text(" bid ").Add(bidMsg(bid)).String())
 
 	err := progressTurn(c, gameId)
 	if err != nil {

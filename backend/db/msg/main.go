@@ -2,6 +2,7 @@ package msg
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -21,6 +22,10 @@ func (t text) render(sb *strings.Builder) {
 
 func Text(s string) Part {
 	return text(s)
+}
+
+func Int(n int) Part {
+	return text(strconv.Itoa(n))
 }
 
 type wrapped struct {
@@ -44,6 +49,10 @@ func (g group) render(sb *strings.Builder) {
 	for _, c := range g.children {
 		c.render(sb)
 	}
+}
+
+func Bold(n ...Part) Part {
+	return wrapped{"b", n}
 }
 
 func Player(id uuid.UUID) Part {
@@ -86,6 +95,11 @@ func (m *MessageBuilder) Icon(v string) *MessageBuilder {
 
 func (m *MessageBuilder) Text(s string) *MessageBuilder {
 	m.Add(Text(s))
+	return m
+}
+
+func (m *MessageBuilder) Bold(s Part) *MessageBuilder {
+	m.Add(Bold(s))
 	return m
 }
 

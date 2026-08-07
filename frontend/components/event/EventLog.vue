@@ -69,6 +69,8 @@ onUnmounted(() => {
   max-height: 200px;
   min-width: 300px;
   overflow-y: scroll;
+  flex-direction: column;
+  align-items: start;
 }
 .log-button {
   margin-left: auto;
