@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EventLog from '@/components/event/EventLog.vue'
 import GameError from '@/components/games/GameError.vue'
 import GameLoading from '@/components/games/GameLoading.vue'
 import { useRoomStore } from '@/stores/room'
@@ -35,5 +36,8 @@ onMounted(() => {
 
 <template>
   <div v-if="!room.ready">Loading...</div>
-  <GameRender v-else />
+  <div v-else>
+    <GameRender />
+    <EventLog />
+  </div>
 </template>

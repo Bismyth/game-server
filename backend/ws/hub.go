@@ -11,7 +11,6 @@ import (
 // clients.
 type Hub struct {
 	// Registered clients.
-	clients   map[*Client]bool
 	clientIds map[uuid.UUID]*Client
 
 	// Inbound messages from the clients.
@@ -29,7 +28,6 @@ func NewHub() *Hub {
 		broadcast:  make(chan *api.IRawMessage),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
-		clients:    make(map[*Client]bool),
 		clientIds:  make(map[uuid.UUID]*Client),
 	}
 }
@@ -63,15 +61,13 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case client := <-h.register:
-			h.clients[client] = true
 			h.clientIds[client.sessionId] = client
 		case client := <-h.unregister:
-			if _, ok := h.clients[client]; ok {
+			if h.clientIds[client.sessionId] != nil {
 				err := api.HandleSessionClose(client.sessionId)
 				if err != nil {
 					log.Printf("failed to close session: %v", err)
 				}
-				delete(h.clients, client)
 				delete(h.clientIds, client.sessionId)
 				close(client.send)
 			}

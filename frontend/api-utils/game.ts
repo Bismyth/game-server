@@ -6,8 +6,8 @@ export const handleGameAction = (data: unknown) => {
   handleAction.run(data)
 }
 
-const handleEvent = new CallBackFunc<unknown>()
-export const handleGameEvent = (data: unknown) => {
+const handleEvent = new CallBackFunc<string>()
+export const handleGameEvent = (data: string) => {
   handleEvent.run(data)
 }
 

@@ -3,6 +3,8 @@ package liarsdice
 import (
 	"fmt"
 
+	"github.com/Bismyth/game-server/db"
+	"github.com/Bismyth/game-server/db/msg"
 	"github.com/Bismyth/game-server/interfaces"
 	"github.com/google/uuid"
 )
@@ -48,11 +50,13 @@ func evalBid(gameId uuid.UUID) (bool, error) {
 	return trueAmount >= a, nil
 }
 
-func currentPlayerLoseDice(gameId uuid.UUID) (int, error) {
+func currentPlayerLoseDice(c interfaces.GameCommunication, gameId uuid.UUID) (int, error) {
 	playerId, err := C_PLAYER.For(gameId).Current()
 	if err != nil {
 		return 0, err
 	}
+
+	db.GameEvent(gameId, c).Log(msg.Msg().Player(playerId).Text(" has lost a dice").String())
 
 	amount, err := PD_DICE.Get(gameId, playerId)
 	if err != nil {
@@ -95,6 +99,7 @@ func handleCall(c interfaces.GameCommunication, gameId uuid.UUID) error {
 	if !bidRight {
 		playerTracker.Previous()
 	}
+	db.GameEvent(gameId, c).Log(msg.Msg().Player(cu).Text(" has called out ").Player(pv).String())
 
 	lostUser, err := playerTracker.Current()
 	if err != nil {
@@ -107,7 +112,7 @@ func handleCall(c interfaces.GameCommunication, gameId uuid.UUID) error {
 		return err
 	}
 
-	a, err := currentPlayerLoseDice(gameId)
+	a, err := currentPlayerLoseDice(c, gameId)
 	if err != nil {
 		return err
 	}

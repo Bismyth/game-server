@@ -37,7 +37,6 @@ type fullStateT = z.infer<typeof stateSchema>
 
 const create = () => {
   api.game.handleAction.fn = handleAction
-  api.game.handleEvent.fn = handleEvent
   api.game.handleState.fn = handleState
 
   resetValues()
@@ -261,10 +260,6 @@ const handleAction = (data: unknown) => {
     return
   }
   gameData.currentOptions = result.data
-}
-
-const handleEvent = (data: unknown) => {
-  console.log(data)
 }
 
 const currentHand = computed(() => {

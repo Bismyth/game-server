@@ -1,9 +1,11 @@
 package liarsdice
 
 import (
+	"fmt"
 	"math/rand/v2"
 
 	"github.com/Bismyth/game-server/db"
+	"github.com/Bismyth/game-server/db/msg"
 	"github.com/Bismyth/game-server/interfaces"
 	"github.com/google/uuid"
 )
@@ -176,4 +178,13 @@ func cleanup(gameId uuid.UUID) error {
 	}
 
 	return nil
+}
+
+func bidMsg(bid string) msg.Part {
+	n, v, err := parseBid(bid)
+	if err != nil {
+		panic(err)
+	}
+
+	return msg.Concat(msg.Text(fmt.Sprintf("%dx ", n)), msg.Icon(fmt.Sprintf("bi:dice-%d-fill", v)))
 }

@@ -40,7 +40,6 @@ type privateStateT = z.infer<typeof privateStateScehma>
 
 const create = () => {
   api.game.handleAction.fn = handleAction
-  api.game.handleEvent.fn = handleEvent
   api.game.handleState.fn = handleState
 
   resetValues()
@@ -178,9 +177,6 @@ const handleAction = (data: unknown) => {
   }
   gameData.currentOptions = result.data
   gameData.isTurn = true
-}
-const handleEvent = (data: unknown) => {
-  console.log(data)
 }
 
 export default {

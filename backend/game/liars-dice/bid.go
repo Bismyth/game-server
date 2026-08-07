@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Bismyth/game-server/db"
+	"github.com/Bismyth/game-server/db/msg"
 	"github.com/Bismyth/game-server/interfaces"
 	"github.com/google/uuid"
 )
@@ -62,13 +64,14 @@ func checkValidBid(oldBid string, newBid string) bool {
 	return true
 }
 
-func handleBid(c interfaces.GameCommunication, gameId uuid.UUID, bid string) error {
+func handleBid(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID, bid string) error {
 	oldBid := GD_BID.MustGet(gameId)
 	if !checkValidBid(oldBid, bid) {
 		return fmt.Errorf("invalid bid")
 	}
 
 	GD_BID.MustSet(gameId, bid)
+	db.GameEvent(gameId, c).Log(msg.Msg().Player(playerId).Text(" has bid ").Add(bidMsg(bid)).String())
 
 	err := progressTurn(c, gameId)
 	if err != nil {
