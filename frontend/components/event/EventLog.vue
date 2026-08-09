@@ -50,8 +50,8 @@ onUnmounted(() => {
       </button>
     </div>
     <div class="panel-block log-messages" v-show="showBody" ref="chatContainer">
-      <span v-if="eventHistory.length == 0">No messages yet...</span>
-      <BBCodeText v-else v-for="(e, i) in eventHistory" :key="i" :text="e" />
+      <p v-if="eventHistory.length == 0">No messages yet...</p>
+      <BBCodeText class="message-box" v-else v-for="(e, i) in eventHistory" :key="i" :text="e" />
     </div>
   </div>
 </template>
@@ -71,6 +71,7 @@ onUnmounted(() => {
   overflow-y: scroll;
   flex-direction: column;
   align-items: start;
+  background-color: var(--bulma-background);
 }
 .log-button {
   margin-left: auto;
@@ -88,5 +89,23 @@ onUnmounted(() => {
   padding: 0.5em 1em;
   display: flex;
   align-items: center;
+}
+
+.message-box:not(:last-child) {
+  position: relative;
+}
+
+.message-box {
+  width: 100%;
+  margin: 0.25em 0;
+}
+
+.message-box:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  bottom: -0.25em;
+  border-bottom: 1px solid var(--bulma-text);
+  left: -0.75em;
+  right: -0.75em;
 }
 </style>
