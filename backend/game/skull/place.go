@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/Bismyth/game-server/db"
+	"github.com/Bismyth/game-server/db/msg"
 	"github.com/Bismyth/game-server/interfaces"
 	"github.com/google/uuid"
 )
@@ -40,6 +42,8 @@ func handlePlace(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid
 		if err != nil {
 			return err
 		}
+
+		db.GameEvent(gameId, c).Log(msg.Msg().Player(playerId).Text(" has placed a tile").String())
 	}
 
 	err = updatePublicGameState(c, gameId)

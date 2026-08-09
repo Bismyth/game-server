@@ -5,7 +5,7 @@ import { handleRoomChange, handleRoomUserChange } from './room'
 import { useErrorStore } from '@/stores/error'
 import { handleGameAction, handleGameEvent, handleGameState } from './game'
 
-const routeMap: Record<IPacketType, (data: unknown) => void> = {
+const routeMap: Record<IPacketType, (data: any) => void> = {
   [IPacketType.RoomInfo]: handleRoomChange,
   [IPacketType.RoomUserChange]: handleRoomUserChange,
   [IPacketType.Error]: errorHandle,
@@ -35,7 +35,7 @@ export const handleIncomingMessage = (message: string) => {
       message: 'Unknown data received from server',
     })
 
-    console.log(result.error.format())
+    console.log(z.treeifyError(result.error))
     return
   }
 

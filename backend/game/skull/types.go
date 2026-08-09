@@ -19,6 +19,9 @@ type GameState struct {
 
 type Action string
 
+const rose_icon = "mdi:flower-poppy"
+const skull_icon = "mdi:skull"
+
 const a_place = "place"
 const a_bid = "bid"
 const a_pass = "pass"

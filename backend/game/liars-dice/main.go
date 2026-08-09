@@ -114,7 +114,7 @@ func (h *Handler) HandleAction(c interfaces.GameCommunication, gameId uuid.UUID,
 
 	switch response.Option {
 	case ga_bid:
-		err = handleBid(c, gameId, response.Data.Bid)
+		err = handleBid(c, gameId, playerId, response.Data.Bid)
 	case ga_call:
 		err = handleCall(c, gameId)
 	default:

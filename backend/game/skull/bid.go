@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/Bismyth/game-server/db"
+	"github.com/Bismyth/game-server/db/msg"
 	"github.com/Bismyth/game-server/interfaces"
 	"github.com/google/uuid"
 )
@@ -41,6 +43,8 @@ func handleBid(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data 
 		return fmt.Errorf("must increase bid")
 	}
 	PGS_BID.MustSet(gameId, bidData.Bid)
+	db.GameEvent(gameId, c).Log(msg.Msg().Player(playerId).Text(" has bid ").Bold(msg.Int(bidData.Bid)).String())
+
 	if totalTiles == bidData.Bid {
 		err = startFlipper(c, gameId, playerId)
 		if err != nil {
@@ -75,6 +79,8 @@ func handlePass(c interfaces.GameCommunication, gameId, playerId uuid.UUID, _ js
 
 	currentPassed = append(currentPassed, playerId)
 	PGS_PASSED.MustSet(gameId, currentPassed)
+
+	db.GameEvent(gameId, c).Log(msg.Msg().Player(playerId).Text(" has passed").String())
 
 	nextPlayer, err := goToUnpassedPlayer(gameId, currentPassed)
 	if err != nil {
