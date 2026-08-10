@@ -16,52 +16,53 @@ type Cursor struct {
 }
 
 func (c Cursor) For(g uuid.UUID) BoundCursor {
-	return BoundCursor{gameId: g, c: c}
+	return BoundCursor{
+		gameId: g,
+		c:      c,
+		conn:   getConn(),
+		ctx:    context.Background(),
+	}
 }
 
 type BoundCursor struct {
 	gameId uuid.UUID
 	c      Cursor
+	conn   *redis.Client
+	ctx    context.Context
 }
 
 func (bc BoundCursor) Key() string {
 	return it(gameHashName, bc.gameId, bc.c.Key)
 }
 
-func (c BoundCursor) Add(id uuid.UUID) error {
-	conn := getConn()
-	ctx := context.Background()
-
-	err := conn.RPush(ctx, c.Key(), id.String()).Err()
+func (c BoundCursor) Add(id uuid.UUID) {
+	err := c.conn.RPush(c.ctx, c.Key(), id.String()).Err()
 	if err != nil {
-		return err
+		panic(err)
 	}
-
-	return nil
 }
 
-func (c BoundCursor) GetAll() ([]uuid.UUID, error) {
-	conn := getConn()
-	ctx := context.Background()
-
-	idStrings, err := conn.LRange(ctx, c.Key(), 0, -1).Result()
+func (c BoundCursor) GetAll() []uuid.UUID {
+	idStrings, err := c.conn.LRange(c.ctx, c.Key(), 0, -1).Result()
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
-	return ParseUUIDList(idStrings)
+	li, err := ParseUUIDList(idStrings)
+	if err != nil {
+		panic(err)
+	}
+
+	return li
 }
 
-func (c BoundCursor) Length() (int64, error) {
-	conn := getConn()
-	ctx := context.Background()
-
-	count, err := conn.LLen(ctx, c.Key()).Result()
+func (c BoundCursor) Length() int64 {
+	count, err := c.conn.LLen(c.ctx, c.Key()).Result()
 	if err != nil {
-		return -1, err
+		panic(err)
 	}
 
-	return count, nil
+	return count
 }
 
 func (c BoundCursor) RemoveTarget(playerId uuid.UUID) error {
@@ -69,38 +70,20 @@ func (c BoundCursor) RemoveTarget(playerId uuid.UUID) error {
 	if !hasItem {
 		return nil
 	}
-	current, err := c.Current()
-	if err != nil {
-		return err
-	}
+	current := c.Current()
 	if current == playerId {
-		err := c.Remove()
-		if err != nil {
-			return err
-		}
+		c.Remove()
 	} else {
-		err := c.SeekIndex(playerId)
-		if err != nil {
-			return err
-		}
-		err = c.Remove()
-		if err != nil {
-			return err
-		}
-		err = c.SeekIndex(current)
-		if err != nil {
-			return err
-		}
+		c.SeekIndex(playerId)
+		c.Remove()
+		c.SeekIndex(current)
 	}
 
 	return nil
 }
 
 func (c BoundCursor) HasItem(id uuid.UUID) bool {
-	conn := getConn()
-	ctx := context.Background()
-
-	_, err := conn.LPos(ctx, c.Key(), id.String(), redis.LPosArgs{}).Result()
+	_, err := c.conn.LPos(c.ctx, c.Key(), id.String(), redis.LPosArgs{}).Result()
 
 	return err == nil
 }
@@ -110,10 +93,7 @@ func (c BoundCursor) Reset() {
 }
 
 func (c BoundCursor) GetIndex() int64 {
-	conn := getConn()
-	ctx := context.Background()
-
-	s, err := conn.Get(ctx, ic(c.Key())).Result()
+	s, err := c.conn.Get(c.ctx, ic(c.Key())).Result()
 	if errors.Is(err, redis.Nil) {
 		return 0
 	} else if err != nil {
@@ -128,20 +108,14 @@ func (c BoundCursor) GetIndex() int64 {
 }
 
 func (c BoundCursor) SetIndex(i int64) {
-	conn := getConn()
-	ctx := context.Background()
-
-	err := conn.Set(ctx, ic(c.Key()), fmt.Sprintf("%d", i), 0).Err()
+	err := c.conn.Set(c.ctx, ic(c.Key()), fmt.Sprintf("%d", i), 0).Err()
 	if err != nil {
 		log.Panic("failed to get cursor index")
 	}
 }
 
 func (c BoundCursor) wrapIndex(i int64) int64 {
-	conn := getConn()
-	ctx := context.Background()
-
-	size, err := conn.LLen(ctx, c.Key()).Result()
+	size, err := c.conn.LLen(c.ctx, c.Key()).Result()
 	if err != nil {
 		log.Panic("failed to get size of index")
 	}
@@ -152,77 +126,61 @@ func (c BoundCursor) wrapIndex(i int64) int64 {
 	return ((i % size) + size) % size
 }
 
-func (c BoundCursor) Next() (uuid.UUID, error) {
+func (c BoundCursor) Next() uuid.UUID {
 	c.Shift(1)
 	return c.Current()
 }
 
-func (c BoundCursor) PeekNext() (uuid.UUID, error) {
+func (c BoundCursor) PeekNext() uuid.UUID {
 	return c.PeekIndex(c.wrapIndex(c.GetIndex() + 1))
 }
 
-func (c BoundCursor) Previous() (uuid.UUID, error) {
+func (c BoundCursor) Previous() uuid.UUID {
 	c.Shift(-1)
 	return c.Current()
 }
 
-func (c BoundCursor) PeekPrevious() (uuid.UUID, error) {
+func (c BoundCursor) PeekPrevious() uuid.UUID {
 	return c.PeekIndex(c.wrapIndex(c.GetIndex() - 1))
 }
 
-func (c BoundCursor) PeekIndex(i int64) (uuid.UUID, error) {
-	conn := getConn()
-	ctx := context.Background()
-
-	idString, err := conn.LIndex(ctx, c.Key(), i).Result()
+func (c BoundCursor) PeekIndex(i int64) uuid.UUID {
+	idString, err := c.conn.LIndex(c.ctx, c.Key(), i).Result()
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("could not get player index")
+		log.Panic("could not get player index")
 	}
 
 	id, err := uuid.Parse(idString)
 	if err != nil {
-		return id, fmt.Errorf("failed to parse player id")
+		log.Panic("failed to parse player id")
 	}
 
-	return id, nil
+	return id
 }
 
-func (c BoundCursor) Current() (uuid.UUID, error) {
+func (c BoundCursor) Current() uuid.UUID {
 	return c.PeekIndex(c.GetIndex())
 }
 
 // Ends with the cursor on the next value
-func (c BoundCursor) Remove() error {
-	conn := getConn()
-	ctx := context.Background()
+func (c BoundCursor) Remove() {
+	v := c.Current()
 
-	v, err := c.Current()
+	err := c.conn.LRem(c.ctx, c.Key(), 1, v.String()).Err()
 	if err != nil {
-		return err
-	}
-
-	err = conn.LRem(ctx, c.Key(), 1, v.String()).Err()
-	if err != nil {
-		return err
+		panic(err)
 	}
 
 	c.Shift(0)
-
-	return nil
 }
 
-func (c BoundCursor) SeekIndex(id uuid.UUID) error {
-	conn := getConn()
-	ctx := context.Background()
-
-	index, err := conn.LPos(ctx, c.Key(), id.String(), redis.LPosArgs{}).Result()
+func (c BoundCursor) SeekIndex(id uuid.UUID) {
+	index, err := c.conn.LPos(c.ctx, c.Key(), id.String(), redis.LPosArgs{}).Result()
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	c.SetIndex(index)
-
-	return nil
 }
 
 func (c BoundCursor) Shift(n int64) {
@@ -230,15 +188,12 @@ func (c BoundCursor) Shift(n int64) {
 }
 
 func (c BoundCursor) Delete() error {
-	conn := getConn()
-	ctx := context.Background()
-
-	err := conn.Del(ctx, c.Key()).Err()
+	err := c.conn.Del(c.ctx, c.Key()).Err()
 	if err != nil {
 		return err
 	}
 
-	err = conn.Del(ctx, ic(c.Key())).Err()
+	err = c.conn.Del(c.ctx, ic(c.Key())).Err()
 	if err != nil {
 		return err
 	}

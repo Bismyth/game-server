@@ -11,10 +11,7 @@ import (
 )
 
 func progressTurn(c interfaces.GameCommunication, gameId uuid.UUID) error {
-	nextPlayer, err := C_PLAYER.For(gameId).Next()
-	if err != nil {
-		return err
-	}
+	nextPlayer := C_PLAYER.For(gameId).Next()
 
 	publicGs, err := cachePublicGameState(gameId)
 	if err != nil {
@@ -30,12 +27,8 @@ func progressTurn(c interfaces.GameCommunication, gameId uuid.UUID) error {
 }
 
 func newRound(c interfaces.GameCommunication, gameId uuid.UUID, pr *RoundInfo) error {
-	players, err := C_PLAYER.For(gameId).GetAll()
-	if err != nil {
-		return err
-	}
-
-	err = GD_PREVIOUS_ROUND.Set(gameId, *pr)
+	players := C_PLAYER.For(gameId).GetAll()
+	err := GD_PREVIOUS_ROUND.Set(gameId, *pr)
 	if err != nil {
 		return err
 	}
@@ -102,10 +95,7 @@ func generatePreviousRound(gameId uuid.UUID, pvInfo *ParsedRoundInfo) (*RoundInf
 		return &roundInfo, nil
 	}
 
-	players, err := C_PLAYER.For(gameId).GetAll()
-	if err != nil {
-		return nil, err
-	}
+	players := C_PLAYER.For(gameId).GetAll()
 
 	hb, err := GD_BID.Get(gameId)
 	if err != nil {

@@ -22,11 +22,7 @@ func handleBid(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data 
 		return fmt.Errorf("you have already passed")
 	}
 
-	numPlayers, err := C_PLAYER.For(gameId).Length()
-	if err != nil {
-		return err
-	}
-
+	numPlayers := C_PLAYER.For(gameId).Length()
 	if len(currentPassed) >= (int(numPlayers) - 1) {
 		return fmt.Errorf("everyone else has passed, you must now flip")
 	}
@@ -87,10 +83,7 @@ func handlePass(c interfaces.GameCommunication, gameId, playerId uuid.UUID, _ js
 		return err
 	}
 
-	playerCount, err := C_PLAYER.For(gameId).Length()
-	if err != nil {
-		return err
-	}
+	playerCount := C_PLAYER.For(gameId).Length()
 	if len(currentPassed) >= (int(playerCount) - 1) {
 		err = startFlipper(c, gameId, nextPlayer)
 		if err != nil {

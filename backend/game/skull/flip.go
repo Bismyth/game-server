@@ -75,7 +75,7 @@ func handleFlip(c interfaces.GameCommunication, gameId, playerId uuid.UUID, data
 }
 
 func flippedSkull(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID, target uuid.UUID) error {
-	hand := PD_TILES.MustGetPD(gameId, playerId)
+	hand := PD_TILES.MustGet(gameId, playerId)
 
 	err := updatePublicGameState(c, gameId)
 	if err != nil {
@@ -89,11 +89,7 @@ func flippedSkull(c interfaces.GameCommunication, gameId uuid.UUID, playerId uui
 		if err != nil {
 			return err
 		}
-		end, err := checkEnd(gameId)
-		if err != nil {
-			return err
-		}
-		if end {
+		if checkEnd(gameId) {
 			endGame(c, gameId)
 		}
 	} else {
@@ -103,10 +99,7 @@ func flippedSkull(c interfaces.GameCommunication, gameId uuid.UUID, playerId uui
 		PD_TILES.MustSet(gameId, playerId, hand)
 	}
 
-	err = C_PLAYER.For(gameId).SeekIndex(target)
-	if err != nil {
-		return err
-	}
+	C_PLAYER.For(gameId).SeekIndex(target)
 
 	err = newRound(c, gameId)
 	if err != nil {
@@ -121,7 +114,7 @@ func flippedBid(c interfaces.GameCommunication, gameId, playerId uuid.UUID) erro
 	if err != nil {
 		return err
 	}
-	currentPoints := PD_POINTS.MustGetPD(gameId, playerId)
+	currentPoints := PD_POINTS.MustGet(gameId, playerId)
 	newPoints := currentPoints + 1
 	PD_POINTS.MustSet(gameId, playerId, newPoints)
 	bid := PGS_BID.MustGet(gameId)
@@ -136,14 +129,8 @@ func flippedBid(c interfaces.GameCommunication, gameId, playerId uuid.UUID) erro
 		return nil
 	}
 	cursor := C_PLAYER.For(gameId)
-	err = cursor.SeekIndex(playerId)
-	if err != nil {
-		return err
-	}
-	_, err = cursor.Next()
-	if err != nil {
-		return err
-	}
+	cursor.SeekIndex(playerId)
+	cursor.Next()
 
 	err = newRound(c, gameId)
 	if err != nil {
@@ -156,7 +143,7 @@ func flippedBid(c interfaces.GameCommunication, gameId, playerId uuid.UUID) erro
 func startFlipper(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error {
 	PGS_FLIPPER.MustSet(gameId, playerId)
 
-	tiles := PD_TILES_PLACED.MustGetPD(gameId, playerId)
+	tiles := PD_TILES_PLACED.MustGet(gameId, playerId)
 	PD_TILES_REVEALED.MustSet(gameId, playerId, len(tiles))
 
 	bid := PGS_BID.MustGet(gameId)

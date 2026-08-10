@@ -65,14 +65,8 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) error {
 	})
 
 	for _, player := range players {
-		err := PD_DICE.Set(gameId, player, options.StartingDice)
-		if err != nil {
-			return err
-		}
-		err = C_PLAYER.For(gameId).Add(player)
-		if err != nil {
-			return err
-		}
+		PD_DICE.MustSet(gameId, player, options.StartingDice)
+		C_PLAYER.For(gameId).Add(player)
 	}
 
 	pr := RoundInfo{
@@ -99,10 +93,7 @@ func (h *Handler) HandleAction(c interfaces.GameCommunication, gameId uuid.UUID,
 
 	var err error
 
-	current, err := C_PLAYER.For(gameId).Current()
-	if err != nil {
-		return err
-	}
+	current := C_PLAYER.For(gameId).Current()
 	if current != playerId {
 		return fmt.Errorf("not your turn")
 	}
@@ -161,10 +152,7 @@ func (h *Handler) HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, 
 		return err
 	}
 
-	end, err := checkEnd(gameId)
-	if err != nil {
-		return err
-	}
+	end := checkEnd(gameId)
 
 	playerName, err := db.GetRoomUserName(gameId, playerId)
 	if err != nil {
@@ -197,11 +185,7 @@ func (h *Handler) Cleanup(gameId uuid.UUID) error {
 	return cleanup(gameId)
 }
 
-func checkEnd(gameId uuid.UUID) (bool, error) {
-	numPlayers, err := C_PLAYER.For(gameId).Length()
-	if err != nil {
-		return false, err
-	}
-
-	return numPlayers <= 1, nil
+func checkEnd(gameId uuid.UUID) bool {
+	numPlayers := C_PLAYER.For(gameId).Length()
+	return numPlayers <= 1
 }

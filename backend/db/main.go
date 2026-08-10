@@ -54,9 +54,9 @@ func i(namespace string, id uuid.UUID) string {
 	return fmt.Sprintf("%s:%s", namespace, id.String())
 }
 
-func ia(namespace string) string {
-	return fmt.Sprintf("%s:*", namespace)
-}
+// func ia(namespace string) string {
+// 	return fmt.Sprintf("%s:*", namespace)
+// }
 
 func it(namespace string, id uuid.UUID, field string) string {
 	return fmt.Sprintf("%s:%s:%s", namespace, id.String(), field)

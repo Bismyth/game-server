@@ -10,10 +10,8 @@ import (
 )
 
 func getAllDice(gameId uuid.UUID) ([]int, error) {
-	players, err := C_PLAYER.For(gameId).GetAll()
-	if err != nil {
-		return nil, err
-	}
+	players := C_PLAYER.For(gameId).GetAll()
+
 	hands, err := PD_HAND.GetMulti(gameId, players)
 	if err != nil {
 		return nil, err
@@ -50,27 +48,16 @@ func evalBid(gameId uuid.UUID) (bool, error) {
 	return trueAmount >= a, nil
 }
 
-func currentPlayerLoseDice(c interfaces.GameCommunication, gameId uuid.UUID) (int, error) {
-	playerId, err := C_PLAYER.For(gameId).Current()
-	if err != nil {
-		return 0, err
-	}
-
+func currentPlayerLoseDice(c interfaces.GameCommunication, gameId uuid.UUID) int {
+	playerId := C_PLAYER.For(gameId).Current()
 	db.GameEvent(gameId, c).Log(msg.Msg().Player(playerId).Text(" has lost a dice").String())
 
-	amount, err := PD_DICE.Get(gameId, playerId)
-	if err != nil {
-		return 0, err
-	}
-
+	amount := PD_DICE.MustGet(gameId, playerId)
 	newAmount := amount - 1
 
-	err = PD_DICE.Set(gameId, playerId, newAmount)
-	if err != nil {
-		return 0, err
-	}
+	PD_DICE.MustSet(gameId, playerId, newAmount)
 
-	return newAmount, nil
+	return newAmount
 }
 
 func handleCall(c interfaces.GameCommunication, gameId uuid.UUID) error {
@@ -84,16 +71,10 @@ func handleCall(c interfaces.GameCommunication, gameId uuid.UUID) error {
 
 	playerTracker := C_PLAYER.For(gameId)
 
-	cu, err := playerTracker.Current()
-	if err != nil {
-		return err
-	}
+	cu := playerTracker.Current()
 	pvInfo.CallUser = cu
 
-	pv, err := playerTracker.PeekPrevious()
-	if err != nil {
-		return err
-	}
+	pv := playerTracker.PeekPrevious()
 	pvInfo.LastBid = pv
 
 	if !bidRight {
@@ -101,10 +82,7 @@ func handleCall(c interfaces.GameCommunication, gameId uuid.UUID) error {
 	}
 	db.GameEvent(gameId, c).Log(msg.Msg().Player(cu).Text(" has called out ").Player(pv).String())
 
-	lostUser, err := playerTracker.Current()
-	if err != nil {
-		return err
-	}
+	lostUser := playerTracker.Current()
 	pvInfo.DiceLost = lostUser
 
 	pr, err := generatePreviousRound(gameId, &pvInfo)
@@ -112,38 +90,21 @@ func handleCall(c interfaces.GameCommunication, gameId uuid.UUID) error {
 		return err
 	}
 
-	a, err := currentPlayerLoseDice(c, gameId)
-	if err != nil {
-		return err
-	}
-
+	a := currentPlayerLoseDice(c, gameId)
 	if a <= 0 {
-		err := playerTracker.Remove()
-		if err != nil {
-			return err
-		}
-		end, err := checkEnd(gameId)
-		if err != nil {
-			return err
-		}
-		if end {
+		playerTracker.Remove()
+		if checkEnd(gameId) {
 			endGame(c, gameId, pr)
 			return nil
 		}
 	}
 
 	if !bidRight && a > 0 {
-		_, err := playerTracker.Next()
-		if err != nil {
-			return err
-		}
+		playerTracker.Next()
 	}
 
 	if bidRight && a == 0 {
-		_, err = playerTracker.Previous()
-		if err != nil {
-			return err
-		}
+		playerTracker.Previous()
 	}
 
 	err = newRound(c, gameId, pr)
