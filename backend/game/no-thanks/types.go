@@ -21,8 +21,17 @@ type ActionResponse struct {
 }
 
 type GameState struct {
+	Type    string            `json:"type"`
 	Public  *PublicGameState  `json:"public"`
 	Private *PrivateGameState `json:"private"`
+}
+
+func NewGameState(public *PublicGameState, private *PrivateGameState) GameState {
+	return GameState{
+		Type:    "state",
+		Public:  public,
+		Private: private,
+	}
 }
 
 var DECK = db.Deck[int]{Key: "deck"}
@@ -54,6 +63,14 @@ type PublicGameState struct {
 	CurrentPlayer uuid.UUID           `json:"currentPlayer"`
 	CurrentRound  int                 `json:"currentRound"`
 	TotalRounds   int                 `json:"totalRounds"`
+}
+
+type PreviousRound struct {
+	Type        string              `json:"type"`
+	Score       map[uuid.UUID]int   `json:"score"`
+	PlayerCards map[uuid.UUID][]int `json:"playerCards"`
+	Removed     []int               `json:"removed"`
+	Round       int                 `json:"round"`
 }
 
 func loadPublic(gameId uuid.UUID) PublicGameState {

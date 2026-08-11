@@ -94,10 +94,12 @@ func (h *Handler) HandleReady(c interfaces.GameCommunication, gameId uuid.UUID, 
 		c.ActionPrompt(playerId, allActions)
 	}
 
-	c.SendPlayer(playerId, GameState{
-		Public:  publicGs,
-		Private: privateGs,
-	})
+	pr := getPrevious(gameId)
+
+	c.SendPlayer(playerId, NewGameState(publicGs, privateGs))
+	if pr != nil {
+		c.SendPlayer(playerId, pr)
+	}
 
 	return nil
 }
@@ -115,6 +117,10 @@ func (h *Handler) Cleanup(gameId uuid.UUID) error {
 	DECK.For(gameId).Clear()
 
 	err = db.ExpireCache(gameId, cacheExpireTime)
+	if err != nil {
+		return err
+	}
+	err = db.ExpireGameKey(gameId, "pr", cacheExpireTime)
 	if err != nil {
 		return err
 	}

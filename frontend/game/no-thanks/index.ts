@@ -15,6 +15,7 @@ const publicStateSchema = z.object({
   currentPlayer: z.uuid(),
   currentRound: z.number().int(),
   totalRounds: z.number().int(),
+  gameOver: z.boolean().optional(),
 })
 
 type publicStateT = z.infer<typeof publicStateSchema>
@@ -26,18 +27,39 @@ const privateStateScehma = z.object({
 type privateStateT = z.infer<typeof privateStateScehma>
 
 const stateSchema = z.object({
+  type: z.literal("state"),
   public: publicStateSchema.nullable(),
   private: privateStateScehma.nullable(),
 })
 
+type stateT = z.infer<typeof stateSchema>
+
+const previousRoundSchema = z.object({
+  type: z.literal("previous"),
+  score: z.record(z.uuid(), z.number().int()),
+  playerCards: z.record(z.uuid(), z.array(z.number().int())),
+  removed: z.array(z.number().int()),
+  round: z.number().int(),
+})
+
+export type PreviousRound = z.infer<typeof previousRoundSchema>
+
+
+const messageSchema = z.discriminatedUnion("type", [
+  stateSchema,
+  previousRoundSchema
+])
+
 const create = () => {
   api.game.handleAction.fn = handleAction
-  api.game.handleState.fn = handleState
+  api.game.handleState.fn = handleMessage
 
   resetValues()
 
   api.game.ready()
 }
+
+const previousRound = ref<PreviousRound | undefined>(undefined)
 
 const gameData = reactive<{
   publicState: (publicStateT) | undefined
@@ -85,8 +107,8 @@ const handleAction = (data: unknown) => {
   gameData.isTurn = true
 }
 
-const handleState = (data: unknown) => {
-  const result = stateSchema.safeParse(data)
+const handleMessage = (data: unknown) => {
+  const result = messageSchema.safeParse(data)
   if (!result.success) {
     console.log(z.treeifyError(result.error))
     console.log("bad data")
@@ -95,16 +117,27 @@ const handleState = (data: unknown) => {
     return
   }
 
-  if (result.data.public) {
-    gameData.publicState = result.data.public
+  switch (result.data.type) {
+    case 'state':
+      handleState(result.data)
+      break;
+    case 'previous':
+      previousRound.value = result.data
+      break;
+  }
+}
+
+const handleState = (v: stateT) => {
+    if (v.public) {
+    gameData.publicState = v.public
     const room = useRoomStore()
 
-    if (result.data.public.currentPlayer !== room.data.userId) {
+    if (v.public.currentPlayer !== room.data.userId) {
       gameData.isTurn = false
     }
   }
-  if (result.data.private) {
-    gameData.privateState = result.data.private
+  if (v.private) {
+    gameData.privateState = v.private
   }
 }
 
@@ -113,4 +146,5 @@ export default {
     create,
     pass,
     take,
+    previousRound
 }

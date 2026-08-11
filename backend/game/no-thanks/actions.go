@@ -54,10 +54,10 @@ func handleTake(c interfaces.GameCommunication, gameId, playerId uuid.UUID) erro
 
 func actionCleanup(c interfaces.GameCommunication, gameId, playerId uuid.UUID) {
 	nextPlayer := C_PLAYER.For(gameId).Current()
-	updatePublicState(c, gameId)
+	ps := cachePublicGameState(gameId)
 	p := loadPrivate(gameId, playerId)
-	c.SendPlayer(playerId, GameState{
-		Private: &p,
-	})
+
+	c.SendGlobal(NewGameState(ps, nil))
+	c.SendPlayer(playerId, NewGameState(nil, &p))
 	c.ActionPrompt(nextPlayer, allActions)
 }

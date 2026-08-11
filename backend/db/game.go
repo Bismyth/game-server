@@ -9,7 +9,7 @@ import (
 
 const gameHashName = "game"
 
-func SetGameCache(gameId uuid.UUID, data any) error {
+func SetGameKey(gameId uuid.UUID, key string, data any) error {
 	conn := getConn()
 	ctx := context.Background()
 
@@ -18,7 +18,7 @@ func SetGameCache(gameId uuid.UUID, data any) error {
 		return err
 	}
 
-	err = conn.Set(ctx, it(gameHashName, gameId, "cache"), v, 0).Err()
+	err = conn.Set(ctx, it(gameHashName, gameId, key), v, 0).Err()
 	if err != nil {
 		return err
 	}
@@ -26,13 +26,24 @@ func SetGameCache(gameId uuid.UUID, data any) error {
 	return nil
 }
 
-func GetGameCache[T any](gameId uuid.UUID) (T, error) {
+func SetGameCache(gameId uuid.UUID, data any) error {
+	return SetGameKey(gameId, "cache", data)
+}
+
+func GetGameKey[T any](gameId uuid.UUID, key string) (T, error) {
 	conn := getConn()
 	ctx := context.Background()
 
 	output := new(T)
+	v, err := conn.Exists(ctx, it(gameHashName, gameId, key)).Result()
+	if err != nil {
+		return *output, err
+	}
+	if v <= 0 {
+		return *output, nil
+	}
 
-	r, err := conn.Get(ctx, it(gameHashName, gameId, "cache")).Bytes()
+	r, err := conn.Get(ctx, it(gameHashName, gameId, key)).Bytes()
 	if err != nil {
 		return *output, err
 	}
@@ -45,16 +56,24 @@ func GetGameCache[T any](gameId uuid.UUID) (T, error) {
 	return *output, nil
 }
 
-func ExpireCache(gameId uuid.UUID, duration time.Duration) error {
+func GetGameCache[T any](gameId uuid.UUID) (T, error) {
+	return GetGameKey[T](gameId, "cache")
+}
+
+func ExpireGameKey(gameId uuid.UUID, key string, duration time.Duration) error {
 	conn := getConn()
 	ctx := context.Background()
 
-	err := conn.Expire(ctx, it(gameHashName, gameId, "cache"), duration).Err()
+	err := conn.Expire(ctx, it(gameHashName, gameId, key), duration).Err()
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func ExpireCache(gameId uuid.UUID, duration time.Duration) error {
+	return ExpireGameKey(gameId, "cache", duration)
 }
 
 func SetGameProperty(gameId uuid.UUID, field string, data any) error {

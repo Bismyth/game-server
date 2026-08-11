@@ -2,7 +2,6 @@ package nothanks
 
 import (
 	"github.com/Bismyth/game-server/db"
-	"github.com/Bismyth/game-server/interfaces"
 	"github.com/google/uuid"
 )
 
@@ -26,12 +25,24 @@ func getPublicGameState(gameId uuid.UUID) *PublicGameState {
 	return &gs
 }
 
-func updatePublicState(c interfaces.GameCommunication, gameId uuid.UUID) {
-	pgs := cachePublicGameState(gameId)
+func cachePrevious(gameId uuid.UUID, previous *PreviousRound) {
+	err := db.SetGameKey(gameId, "pr", previous)
+	if err != nil {
+		panic(err)
+	}
+}
 
-	c.SendGlobal(GameState{
-		Public: pgs,
-	})
+func getPrevious(gameId uuid.UUID) *PreviousRound {
+	pr, err := db.GetGameKey[PreviousRound](gameId, "pr")
+	if err != nil {
+		panic(err)
+	}
+
+	if pr.Type == "" {
+		return nil
+	}
+
+	return &pr
 }
 
 func getPrivateGameState(gameId uuid.UUID, playerId uuid.UUID) *PrivateGameState {
