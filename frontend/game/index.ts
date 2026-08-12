@@ -1,7 +1,7 @@
 import { useRoomStore } from '@/stores/room'
 import router from '@/router'
 
-export const gameTypes = ['liarsdice', 'skull'] as const
+export const gameTypes = ['liarsdice', 'skull', 'nothanks'] as const
 
 export type GameTypes = (typeof gameTypes)[number]
 
@@ -12,7 +12,8 @@ interface GameInfo {
 
 export const gameTypeLabels: { [k in GameTypes]: GameInfo } = {
   liarsdice: {displayName: 'Liars Dice', icon: 'mdi:dice-2'},
-  skull: {displayName: 'Skull (Beta)', icon: 'mdi:skull'},
+  skull: {displayName: 'Skull', icon: 'mdi:skull'},
+  nothanks: {displayName: "No Thanks! (Beta)", icon: 'mdi:comment-arrow-right'},
 }
 
 export const handleLobbyBack = () => {

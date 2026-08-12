@@ -67,10 +67,7 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) (err error) {
 	})
 
 	for _, player := range players {
-		err = C_PLAYER.For(gameId).Add(player)
-		if err != nil {
-			return
-		}
+		C_PLAYER.For(gameId).Add(player)
 		PD_POINTS.MustSet(gameId, player, 0)
 		PD_TILES.MustSet(gameId, player, startingHand)
 	}
@@ -107,11 +104,8 @@ func (h *Handler) HandleAction(c interfaces.GameCommunication, gameId uuid.UUID,
 	if err != nil {
 		return err
 	}
-	current, err := C_PLAYER.For(gameId).Current()
-	if err != nil {
-		return err
-	}
-	placed := PD_TILES_PLACED.MustGetPD(gameId, playerId)
+	current := C_PLAYER.For(gameId).Current()
+	placed := PD_TILES_PLACED.MustGet(gameId, playerId)
 	flipper := PGS_FLIPPER.MustGet(gameId)
 
 	if playerId != flipper && len(placed) > 1 && current != playerId {
@@ -165,11 +159,7 @@ func (h *Handler) HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, 
 	if err != nil {
 		return err
 	}
-	end, err := checkEnd(gameId)
-	if err != nil {
-		return err
-	}
-
+	end := checkEnd(gameId)
 	PGS_PLAYER_LEFT.MustSet(gameId, true)
 
 	err = updatePublicGameState(c, gameId)

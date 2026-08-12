@@ -32,64 +32,40 @@ func TestCursor(t *testing.T) {
 	t.Log(users)
 
 	for _, user := range users {
-		err := C_PLAYER.For(gameId).Add(user)
-		if err != nil {
-			t.Fatal(err)
-		}
+		C_PLAYER.For(gameId).Add(user)
 	}
 
 	c := C_PLAYER.For(gameId)
 	c.Reset()
 
-	current, err := c.Current()
-	if err != nil {
-		t.Fatal(err)
-	}
+	current := c.Current()
 	if current != users[0] {
 		t.Fatalf("wrong uuid expected %q, got %q", users[0].String(), current.String())
 	}
 
-	n, err := c.Next()
-	if err != nil {
-		t.Fatal(err)
-	}
+	n := c.Next()
 	if n != users[1] {
 		t.Fatalf("wrong uuid expected %q, got %q", users[1].String(), current.String())
 	}
 
-	n, err = c.Next()
-	if err != nil {
-		t.Fatal(err)
-	}
+	n = c.Next()
 	if n != users[0] {
 		t.Fatalf("wrong uuid expected %q, got %q", users[0].String(), current.String())
 	}
 
-	n, err = c.Previous()
-	if err != nil {
-		t.Fatal(err)
-	}
+	n = c.Previous()
 	if n != users[1] {
 		t.Fatalf("wrong uuid expected %q, got %q", users[1].String(), current.String())
 	}
 
-	err = c.Remove()
-	if err != nil {
-		t.Fatal(err)
-	}
+	c.Remove()
 
-	n, err = c.Current()
-	if err != nil {
-		t.Fatal(err)
-	}
+	n = c.Current()
 	if n != users[0] {
 		t.Fatalf("wrong uuid expected %q, got %q", users[0].String(), current.String())
 	}
 
-	n, err = c.Next()
-	if err != nil {
-		t.Fatal(err)
-	}
+	n = c.Next()
 	if n != users[0] {
 		t.Fatalf("wrong uuid expected %q, got %q", users[0].String(), current.String())
 	}

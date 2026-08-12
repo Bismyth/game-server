@@ -11,7 +11,7 @@ type PlayerProperty[T any] struct {
 func (p PlayerProperty[T]) Get(gameId uuid.UUID, playerId uuid.UUID) (T, error) {
 	return GetPlayerProperty[T](gameId, playerId, p.Key)
 }
-func (p PlayerProperty[T]) MustGetPD(gameId uuid.UUID, playerId uuid.UUID) T {
+func (p PlayerProperty[T]) MustGet(gameId uuid.UUID, playerId uuid.UUID) T {
 	d, err := p.Get(gameId, playerId)
 	if err != nil {
 		panic(err)

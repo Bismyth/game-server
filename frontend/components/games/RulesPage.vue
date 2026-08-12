@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { GameTypes } from '@/game'
-import { defineAsyncComponent, watch } from 'vue'
+import { defineAsyncComponent, watch, ref } from 'vue'
+import IconButton from '../IconButton.vue'
+import ModalWrap from '../ModalWrap.vue'
 
 const props = defineProps<{
   gameType: GameTypes
@@ -10,7 +12,7 @@ const getRulesPage = (gameType: GameTypes) =>
   defineAsyncComponent({
     // the loader function
     loader: () => {
-      return import(`./${gameType}/RulesPage.vue`)
+      return import(`@/game/${gameType}/components/RulesPage.vue`)
     },
     timeout: 3000,
   })
@@ -23,8 +25,26 @@ watch(
     Rules = getRulesPage(nv)
   },
 )
+
+const showModal = ref(false)
+
+const handleOpen = () => {
+  showModal.value = true
+}
+
+const handleClose = () => {
+  showModal.value = false
+}
 </script>
 
 <template>
-  <Rules />
+  <IconButton icon="fa6-solid:book" label="Rules" @click="handleOpen" />
+
+  <Teleport to="body">
+    <ModalWrap :shown="showModal" title="Rules" @close="handleClose">
+      <template #body>
+        <Rules />
+      </template>
+    </ModalWrap>
+  </Teleport>
 </template>

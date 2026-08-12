@@ -35,29 +35,11 @@ func countTiles(arr []Tile, t Tile) int {
 }
 
 func getTileList(gameId uuid.UUID) ([]int, error) {
-	players, err := C_PLAYER.For(gameId).GetAll()
-	if err != nil {
-		return []int{}, err
-	}
+	players := C_PLAYER.For(gameId).GetAll()
 
 	placedTiles := make([]int, len(players))
 	for i, playerId := range players {
-		t := PD_TILES_PLACED.MustGetPD(gameId, playerId)
-		placedTiles[i] = len(t)
-	}
-
-	return placedTiles, nil
-}
-
-func countTilesPlaced(gameId uuid.UUID) ([]int, error) {
-	players, err := C_PLAYER.For(gameId).GetAll()
-	if err != nil {
-		return []int{}, err
-	}
-
-	placedTiles := make([]int, len(players))
-	for i, playerId := range players {
-		t := PD_TILES_PLACED.MustGetPD(gameId, playerId)
+		t := PD_TILES_PLACED.MustGet(gameId, playerId)
 		placedTiles[i] = len(t)
 	}
 
@@ -93,21 +75,11 @@ func allPlayersTilesPlaced(gameId uuid.UUID) (bool, error) {
 
 func goToUnpassedPlayer(gameId uuid.UUID, passed []uuid.UUID) (uuid.UUID, error) {
 	cursor := C_PLAYER.For(gameId)
-	currentPlayer, err := cursor.Current()
-	if err != nil {
-		return uuid.Nil, err
-	}
-
-	nextPlayer, err := cursor.Next()
-	if err != nil {
-		return uuid.Nil, err
-	}
+	currentPlayer := cursor.Current()
+	nextPlayer := cursor.Next()
 
 	for isPassedPlayer(nextPlayer, passed) {
-		nextPlayer, err = cursor.Next()
-		if err != nil {
-			return uuid.Nil, err
-		}
+		nextPlayer = cursor.Next()
 		if nextPlayer == currentPlayer {
 			return uuid.Nil, fmt.Errorf("no player found")
 		}
@@ -146,10 +118,7 @@ func newRound(c interfaces.GameCommunication, gameId uuid.UUID) error {
 		return err
 	}
 
-	players, err := C_PLAYER.For(gameId).GetAll()
-	if err != nil {
-		return err
-	}
+	players := C_PLAYER.For(gameId).GetAll()
 
 	for _, player := range players {
 		privateGs, err := getPrivateGameState(gameId, player)
@@ -168,10 +137,7 @@ func resetRoundValues(gameId uuid.UUID) error {
 	PGS_PASSED.MustSet(gameId, []uuid.UUID{})
 	PGS_PLAYER_LEFT.MustSet(gameId, false)
 
-	players, err := C_PLAYER.For(gameId).GetAll()
-	if err != nil {
-		return err
-	}
+	players := C_PLAYER.For(gameId).GetAll()
 	for _, player := range players {
 		PD_TILES_PLACED.MustSet(gameId, player, []Tile{})
 		PD_TILES_REVEALED.MustSet(gameId, player, 0)
@@ -202,11 +168,7 @@ func endGame(c interfaces.GameCommunication, gameId uuid.UUID) error {
 	return nil
 }
 
-func checkEnd(gameId uuid.UUID) (bool, error) {
-	numPlayers, err := C_PLAYER.For(gameId).Length()
-	if err != nil {
-		return false, err
-	}
-
-	return numPlayers <= 1, nil
+func checkEnd(gameId uuid.UUID) bool {
+	numPlayers := C_PLAYER.For(gameId).Length()
+	return numPlayers <= 1
 }

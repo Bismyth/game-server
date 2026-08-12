@@ -10,7 +10,7 @@ import { useRoomStore } from '@/stores/room'
 import { Icon } from '@iconify/vue'
 import CallModal from './CallModal.vue'
 import EndGame from './EndGame.vue'
-import RulesPage from './RulesPage.vue'
+import RulesPage from '@/components/games/RulesPage.vue'
 import RoomName from '@/components/RoomName.vue'
 import { handleLobbyBack } from '@/game'
 
@@ -94,7 +94,7 @@ const handleGameOverClose = () => {
           <div class="is-flex">
             <h1 class="title mr-3">Liars Dice</h1>
             <div>
-              <RulesPage />
+              <RulesPage game-type="liarsdice" />
             </div>
           </div>
         </div>

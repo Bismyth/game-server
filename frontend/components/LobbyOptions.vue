@@ -30,8 +30,8 @@ const openModal = () => {
           <span class="p-1" :style="{ fontSize: '64px' }">
             <Icon :icon="value.icon" />
           </span>
-          <span>{{ value.displayName }}</span>
-          <button @click="selectGame(key)" class="button">Select</button>
+          <div class="mb-1">{{ value.displayName }}</div>
+          <button @click="selectGame(key)" class="button mt-auto">Select</button>
         </div>
       </div>
     </template>

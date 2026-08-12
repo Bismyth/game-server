@@ -74,8 +74,7 @@ func loadPublicGameState(gameId uuid.UUID) (PublicGameState, error) {
 		}
 	}
 
-	bid, err := PGS_BID.Get(gameId)
-	addErr(err)
+	bid := PGS_BID.MustGet(gameId)
 	gameOver, err := PGS_GAME_OVER.Get(gameId)
 	addErr(err)
 	passed, err := PGS_PASSED.Get(gameId)
@@ -87,8 +86,7 @@ func loadPublicGameState(gameId uuid.UUID) (PublicGameState, error) {
 	playerLeft, err := PGS_PLAYER_LEFT.Get(gameId)
 	addErr(err)
 
-	players, err := C_PLAYER.For(gameId).GetAll()
-	addErr(err)
+	players := C_PLAYER.For(gameId).GetAll()
 
 	points, err := PD_POINTS.GetMap(gameId, players)
 	addErr(err)
@@ -117,8 +115,7 @@ func loadPublicGameState(gameId uuid.UUID) (PublicGameState, error) {
 	addErr(err)
 
 	var turn uuid.UUID
-	turn, err = C_PLAYER.For(gameId).Current()
-	addErr(err)
+	turn = C_PLAYER.For(gameId).Current()
 
 	if len(errs) > 0 {
 		return PublicGameState{}, errors.Join(errs...)

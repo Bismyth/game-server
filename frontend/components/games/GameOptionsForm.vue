@@ -12,7 +12,7 @@ const getGameOptions = (gameType: typeof room.data.gameType) =>
   defineAsyncComponent({
     // the loader function
     loader: () => {
-      return import(`./${gameType}/OptionsForm.vue`)
+      return import(`@/game/${gameType}/components/OptionsForm.vue`)
     },
     timeout: 3000,
   })

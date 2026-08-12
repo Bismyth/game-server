@@ -74,8 +74,7 @@ func loadPublicGameState(gameId uuid.UUID) (PublicGameState, error) {
 		}
 	}
 	pTracker := C_PLAYER.For(gameId)
-	players, err := pTracker.GetAll()
-	addErr(err)
+	players := pTracker.GetAll()
 	hb, err := GD_BID.Get(gameId)
 	addErr(err)
 	gameOver, err := GD_GAME_OVER.Get(gameId)
@@ -83,8 +82,7 @@ func loadPublicGameState(gameId uuid.UUID) (PublicGameState, error) {
 
 	currentPlayer := uuid.Nil
 	if !gameOver {
-		currentPlayer, err = pTracker.Current()
-		addErr(err)
+		currentPlayer = pTracker.Current()
 	}
 
 	playerDice, err := PD_DICE.GetMap(gameId, players)

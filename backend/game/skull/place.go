@@ -16,14 +16,14 @@ func handlePlace(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid
 	if err != nil {
 		return err
 	}
-	currentTilesPlaced := PD_TILES_PLACED.MustGetPD(gameId, playerId)
+	currentTilesPlaced := PD_TILES_PLACED.MustGet(gameId, playerId)
 
 	bid := PGS_BID.MustGet(gameId)
 	if bid > 0 {
 		return fmt.Errorf("cant place tile if bid has been made")
 	}
 
-	hand := PD_TILES.MustGetPD(gameId, playerId)
+	hand := PD_TILES.MustGet(gameId, playerId)
 	if len(currentTilesPlaced) == len(hand) {
 		return fmt.Errorf("no more tiles to place")
 	}
@@ -38,10 +38,7 @@ func handlePlace(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid
 	PD_TILES_PLACED.MustSet(gameId, playerId, currentTilesPlaced)
 
 	if len(currentTilesPlaced) > 1 {
-		_, err := C_PLAYER.For(gameId).Next()
-		if err != nil {
-			return err
-		}
+		C_PLAYER.For(gameId).Next()
 
 		db.GameEvent(gameId, c).Log(msg.Msg().Player(playerId).Text(" has placed a tile").String())
 	}

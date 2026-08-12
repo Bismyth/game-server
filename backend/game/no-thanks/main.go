@@ -1,4 +1,4 @@
-package liarsdice
+package nothanks
 
 import (
 	"encoding/json"
@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const Code = "liarsdice"
+const Code = "nothanks"
 
 const cacheExpireTime time.Duration = 2 * time.Hour
 
@@ -22,9 +22,7 @@ func New() *Handler {
 }
 
 func (h *Handler) DefaultOptions() interface{} {
-	return &Options{
-		StartingDice: 5,
-	}
+	return &Options{Rounds: 2}
 }
 
 func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) error {
@@ -39,24 +37,11 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) error {
 		return err
 	}
 
-	if options.StartingDice <= 0 {
-		return fmt.Errorf("must start game with more than 0 dice")
-	}
-
-	if options.StartingDice > 99 {
-		return fmt.Errorf("too many dice")
-	}
-
-	if len(players) < 2 {
+	if len(players) < 2 { //TODO: CHANGE BEFORE SHIPPING
 		return fmt.Errorf("not enough players")
 	}
-
-	if err := GD_BID.Set(gameId, ""); err != nil {
-		return err
-	}
-
-	if err := GD_GAME_OVER.Set(gameId, false); err != nil {
-		return err
+	if len(players) > 7 {
+		return fmt.Errorf("too many players")
 	}
 
 	// Randomise turn order
@@ -64,26 +49,18 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) error {
 		players[i], players[j] = players[j], players[i]
 	})
 
-	for _, player := range players {
-		PD_DICE.MustSet(gameId, player, options.StartingDice)
-		C_PLAYER.For(gameId).Add(player)
+	for _, p := range players {
+		C_PLAYER.For(gameId).Add(p)
+		PD_SCORE.MustSet(gameId, p, 0)
 	}
 
-	pr := RoundInfo{
-		Round: 0,
-	}
-	err = GD_PREVIOUS_ROUND.Set(gameId, pr)
-	if err != nil {
-		return err
-	}
+	GD_GAME_OVER.MustSet(gameId, false)
+	GD_ROUND.MustSet(gameId, 1)
+	GD_TOTAL_ROUNDS.MustSet(gameId, options.Rounds)
+	cachePrevious(gameId, nil)
 
-	C_PLAYER.For(gameId).Reset()
-	rollHands(gameId, players)
-
-	_, err = cachePublicGameState(gameId)
-	if err != nil {
-		return err
-	}
+	newRound(gameId)
+	cachePublicGameState(gameId)
 
 	return nil
 }
@@ -104,10 +81,10 @@ func (h *Handler) HandleAction(c interfaces.GameCommunication, gameId uuid.UUID,
 	}
 
 	switch response.Option {
-	case ga_bid:
-		err = handleBid(c, gameId, playerId, response.Data.Bid)
-	case ga_call:
-		err = handleCall(c, gameId)
+	case ga_pass:
+		err = handlePass(c, gameId, playerId)
+	case ga_take:
+		err = handleTake(c, gameId, playerId)
 	default:
 		err = fmt.Errorf("unrecognized player option")
 	}
@@ -119,73 +96,50 @@ func (h *Handler) HandleAction(c interfaces.GameCommunication, gameId uuid.UUID,
 }
 
 func (h *Handler) HandleReady(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error {
-	publicGs, err := getPublicGameState(gameId)
-	if err != nil {
-		return err
-	}
-	privateGs, err := getPrivateGameState(gameId, playerId)
-	if err != nil {
-		return err
-	}
+	publicGs := getPublicGameState(gameId)
+	privateGs := getPrivateGameState(gameId, playerId)
 
-	if publicGs.PlayerTurn == playerId {
+	if publicGs.CurrentPlayer == playerId {
 		c.ActionPrompt(playerId, allActions)
 	}
 
-	c.SendPlayer(playerId, GameState{
-		Public:  publicGs,
-		Private: privateGs,
-	})
+	pr := getPrevious(gameId)
+	if pr != nil {
+		c.SendPlayer(playerId, pr)
+	}
+	c.SendPlayer(playerId, NewGameState(publicGs, privateGs))
 
 	return nil
 }
 
-func (h *Handler) HandleLeave(c interfaces.GameCommunication, gameId uuid.UUID, playerId uuid.UUID) error {
+func (g *Handler) HandleLeave(c interfaces.GameCommunication, gameId, playerId uuid.UUID) error {
+	// reset current round if remaining players > 3
 	pTracker := C_PLAYER.For(gameId)
 	isPlayer := pTracker.HasItem(playerId)
 	if !isPlayer {
 		return nil
 	}
-
 	err := pTracker.RemoveTarget(playerId)
 	if err != nil {
 		return err
 	}
-
-	end := checkEnd(gameId)
-
-	playerName, err := db.GetRoomUserName(gameId, playerId)
-	if err != nil {
-		return err
-	}
-
-	pr, err := generatePreviousRound(gameId, &ParsedRoundInfo{
-		Leave: playerName,
-	})
-	if err != nil {
-		return err
-	}
-
-	if end {
-		err = endGame(c, gameId, pr)
-		if err != nil {
-			return err
+	if pTracker.Length() >= 3 {
+		cachePrevious(gameId, nil)
+		newRound(gameId)
+		nextPlayer := C_PLAYER.For(gameId).Current()
+		ps := cachePublicGameState(gameId)
+		for _, player := range pTracker.GetAll() {
+			p := loadPrivate(gameId, player)
+			c.SendPlayer(player, NewGameState(ps, &p))
 		}
+
+		c.ActionPrompt(nextPlayer, allActions)
+		return nil
 	} else {
-		err = newRound(c, gameId, pr)
-		if err != nil {
-			return err
-		}
+		return endGame(c, gameId, nil)
 	}
-
-	return nil
 }
 
 func (h *Handler) Cleanup(gameId uuid.UUID) error {
 	return cleanup(gameId)
-}
-
-func checkEnd(gameId uuid.UUID) bool {
-	numPlayers := C_PLAYER.For(gameId).Length()
-	return numPlayers <= 1
 }
