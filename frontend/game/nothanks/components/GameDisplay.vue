@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRoomStore } from '@/stores/room'
 import { computed, onMounted, ref, watch } from 'vue'
-import nt from '@/game/no-thanks'
+import nt from '@/game/nothanks/index.ts'
 import ErrorStore from '@/components/ErrorStore.vue'
 import { handleLobbyBack } from '@/game'
 import IconButton from '@/components/IconButton.vue'
@@ -10,6 +10,8 @@ import RoomName from '@/components/RoomName.vue'
 import SingleCard from './SingleCard.vue'
 import Hand from './Hand.vue'
 import PreviousRound from './PreviousRound.vue'
+import AllHands from './AllHands.vue'
+import RulesPage from '@/components/games/RulesPage.vue'
 
 const room = useRoomStore()
 
@@ -29,10 +31,13 @@ const leave = () => {
   room.leave()
 }
 
-const showPr = ref(false)
-
 const handlePrClose = () => {
-  showPr.value = false
+  nt.showPr.value = false
+}
+
+const showAllHands = ref(false)
+const handleAHClose = () => {
+  showAllHands.value = false
 }
 
 const outPlayers = computed(() => {
@@ -63,7 +68,9 @@ const outPlayers = computed(() => {
         <div class="title-box">
           <div class="is-flex">
             <h1 class="title mr-3">No Thanks!</h1>
-            <div></div>
+            <div>
+              <RulesPage game-type="nothanks" />
+            </div>
           </div>
         </div>
         <div class="outer">
@@ -71,7 +78,7 @@ const outPlayers = computed(() => {
             icon="fa6-solid:clock-rotate-left"
             label="Previous Round"
             v-if="nt.previousRound.value !== undefined"
-            @click="showPr = true"
+            @click="nt.showPr.value = true"
           />
         </div>
       </div>
@@ -134,9 +141,12 @@ const outPlayers = computed(() => {
               </div>
             </div>
 
-            <div>
+            <div class="mb-4">
               <p>Current Hand:</p>
               <Hand :hand="nt.gameData.publicState.playerCards[room.data.userId] ?? []" />
+            </div>
+            <div>
+              <button class="button" @click="showAllHands = true">Show Other Hands</button>
             </div>
           </div>
           <div v-else><span>Loading...</span></div>
@@ -144,5 +154,15 @@ const outPlayers = computed(() => {
       </div>
     </div>
   </main>
-  <PreviousRound :show="showPr" :previous-round="nt.previousRound.value" @close="handlePrClose" />
+  <PreviousRound
+    :show="nt.showPr.value"
+    :previous-round="nt.previousRound.value"
+    :public-state="nt.gameData.publicState"
+    @close="handlePrClose"
+  />
+  <AllHands
+    :show="showAllHands"
+    :hands="nt.gameData.publicState?.playerCards"
+    @close="handleAHClose"
+  />
 </template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Options } from '@/game/no-thanks/options'
+import type { Options } from '@/game/nothanks/options'
 
 defineProps<{
   data?: Options

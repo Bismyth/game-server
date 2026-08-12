@@ -18,7 +18,7 @@ const publicStateSchema = z.object({
   gameOver: z.boolean().optional(),
 })
 
-type publicStateT = z.infer<typeof publicStateSchema>
+export type publicStateT = z.infer<typeof publicStateSchema>
 
 const privateStateScehma = z.object({
     tokens: z.number().int()
@@ -73,12 +73,16 @@ const gameData = reactive<{
   currentOptions: [],
 })
 
+const showPr = ref(false)
+
 const resetValues = () => {
   gameData.publicState = undefined
   gameData.privateState = undefined
   gameData.isTurn = false
   gameData.currentOptions = []
+  showPr.value = false
 }
+
 
 
 const takeAction = (option: string, data?: any) => {
@@ -123,6 +127,9 @@ const handleMessage = (data: unknown) => {
       break;
     case 'previous':
       previousRound.value = result.data
+      if (gameData.publicState?.currentRound == result.data.round) {
+        showPr.value = true
+      }
       break;
   }
 }
@@ -135,6 +142,9 @@ const handleState = (v: stateT) => {
     if (v.public.currentPlayer !== room.data.userId) {
       gameData.isTurn = false
     }
+    if (v.public.gameOver) {
+      showPr.value = true
+    }
   }
   if (v.private) {
     gameData.privateState = v.private
@@ -146,5 +156,6 @@ export default {
     create,
     pass,
     take,
-    previousRound
+    previousRound,
+    showPr
 }

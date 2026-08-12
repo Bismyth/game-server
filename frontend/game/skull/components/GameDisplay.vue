@@ -4,7 +4,7 @@ import skull from '@/game/skull'
 import { useRoomStore } from '@/stores/room'
 import { onMounted, ref, watch, computed } from 'vue'
 import { handleLobbyBack } from '@/game'
-import RulesPage from './RulesPage.vue'
+import RulesPage from '@/components/games/RulesPage.vue'
 import IconButton from '@/components/IconButton.vue'
 import { Icon } from '@iconify/vue'
 import RoomName from '@/components/RoomName.vue'
@@ -73,7 +73,7 @@ const hTile = (v: boolean) => {
           <div class="is-flex">
             <h1 class="title mr-3">Skull</h1>
             <div>
-              <RulesPage />
+              <RulesPage game-type="skull" />
             </div>
           </div>
         </div>

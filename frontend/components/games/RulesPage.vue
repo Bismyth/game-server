@@ -2,6 +2,7 @@
 import type { GameTypes } from '@/game'
 import { defineAsyncComponent, watch, ref } from 'vue'
 import IconButton from '../IconButton.vue'
+import ModalWrap from '../ModalWrap.vue'
 
 const props = defineProps<{
   gameType: GameTypes
@@ -11,7 +12,7 @@ const getRulesPage = (gameType: GameTypes) =>
   defineAsyncComponent({
     // the loader function
     loader: () => {
-      return import(`./${gameType}/RulesPage.vue`)
+      return import(`@/game/${gameType}/components/RulesPage.vue`)
     },
     timeout: 3000,
   })

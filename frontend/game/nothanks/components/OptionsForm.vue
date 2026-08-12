@@ -3,7 +3,7 @@ import FormWrap from '@/components/FormWrap.vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { ref } from 'vue'
 import { useRoomStore } from '@/stores/room'
-import { optionsSchema, type Options } from '@/game/no-thanks/options'
+import { optionsSchema, type Options } from '@/game/nothanks/options'
 
 const emit = defineEmits<{
   submit: [T: Options]

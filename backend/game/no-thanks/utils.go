@@ -1,9 +1,9 @@
 package nothanks
 
 import (
-	"fmt"
 	"slices"
 
+	"github.com/Bismyth/game-server/db"
 	"github.com/Bismyth/game-server/interfaces"
 	"github.com/google/uuid"
 )
@@ -45,9 +45,6 @@ func newRound(gameId uuid.UUID) {
 		PD_CARDS.MustSet(gameId, player, []int{})
 	}
 
-	round := GD_ROUND.MustGet(gameId)
-	GD_ROUND.MustSet(gameId, round+1)
-
 	first := deck.Draw()
 	GD_INPLAY.MustSet(gameId, first)
 	GD_TOKENS_ON_CARD.MustSet(gameId, 0)
@@ -84,9 +81,6 @@ func endRound(c interfaces.GameCommunication, gameId uuid.UUID) error {
 
 	round := GD_ROUND.MustGet(gameId)
 	totalRounds := GD_TOTAL_ROUNDS.MustGet(gameId)
-	if round == totalRounds {
-		return endGame(c, gameId)
-	}
 
 	hands, err := PD_CARDS.GetMap(gameId, players)
 	if err != nil {
@@ -104,6 +98,11 @@ func endRound(c interfaces.GameCommunication, gameId uuid.UUID) error {
 
 	cachePrevious(gameId, &pr)
 
+	if round == totalRounds {
+		return endGame(c, gameId, &pr)
+	}
+
+	GD_ROUND.MustSet(gameId, round+1)
 	newRound(gameId)
 
 	nextPlayer := C_PLAYER.For(gameId).Current()
@@ -119,6 +118,48 @@ func endRound(c interfaces.GameCommunication, gameId uuid.UUID) error {
 	return nil
 }
 
-func endGame(c interfaces.GameCommunication, gameId uuid.UUID) error {
-	return fmt.Errorf("")
+func endGame(c interfaces.GameCommunication, gameId uuid.UUID, pr *PreviousRound) error {
+	err := GD_GAME_OVER.Set(gameId, true)
+	if err != nil {
+		return err
+	}
+
+	pGs := cachePublicGameState(gameId)
+	c.EndGame()
+	c.SendGlobal(NewGameState(pGs, nil))
+	if pr != nil {
+		c.SendGlobal(pr)
+	}
+
+	err = cleanup(gameId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func cleanup(gameId uuid.UUID) error {
+	err := C_PLAYER.For(gameId).Delete()
+	if err != nil {
+		return err
+	}
+
+	DECK.For(gameId).Clear()
+
+	err = db.ExpireCache(gameId, cacheExpireTime)
+	if err != nil {
+		return err
+	}
+	err = db.ExpireGameKey(gameId, "pr", cacheExpireTime)
+	if err != nil {
+		return err
+	}
+
+	err = db.DeleteGame(gameId)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

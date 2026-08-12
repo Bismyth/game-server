@@ -37,6 +37,13 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) error {
 		return err
 	}
 
+	if len(players) < 2 { //TODO: CHANGE BEFORE SHIPPING
+		return fmt.Errorf("not enough players")
+	}
+	if len(players) > 7 {
+		return fmt.Errorf("too many players")
+	}
+
 	// Randomise turn order
 	rand.Shuffle(len(players), func(i, j int) {
 		players[i], players[j] = players[j], players[i]
@@ -47,8 +54,10 @@ func (h *Handler) New(gameId uuid.UUID, rawOptions []byte) error {
 		PD_SCORE.MustSet(gameId, p, 0)
 	}
 
-	GD_ROUND.MustSet(gameId, 0)
+	GD_GAME_OVER.MustSet(gameId, false)
+	GD_ROUND.MustSet(gameId, 1)
 	GD_TOTAL_ROUNDS.MustSet(gameId, options.Rounds)
+	cachePrevious(gameId, nil)
 
 	newRound(gameId)
 	cachePublicGameState(gameId)
@@ -95,40 +104,42 @@ func (h *Handler) HandleReady(c interfaces.GameCommunication, gameId uuid.UUID, 
 	}
 
 	pr := getPrevious(gameId)
-
-	c.SendPlayer(playerId, NewGameState(publicGs, privateGs))
 	if pr != nil {
 		c.SendPlayer(playerId, pr)
 	}
+	c.SendPlayer(playerId, NewGameState(publicGs, privateGs))
 
 	return nil
 }
 
 func (g *Handler) HandleLeave(c interfaces.GameCommunication, gameId, playerId uuid.UUID) error {
-	return fmt.Errorf("not implemented")
+	// reset current round if remaining players > 3
+	pTracker := C_PLAYER.For(gameId)
+	isPlayer := pTracker.HasItem(playerId)
+	if !isPlayer {
+		return nil
+	}
+	err := pTracker.RemoveTarget(playerId)
+	if err != nil {
+		return err
+	}
+	if pTracker.Length() >= 3 {
+		cachePrevious(gameId, nil)
+		newRound(gameId)
+		nextPlayer := C_PLAYER.For(gameId).Current()
+		ps := cachePublicGameState(gameId)
+		for _, player := range pTracker.GetAll() {
+			p := loadPrivate(gameId, player)
+			c.SendPlayer(player, NewGameState(ps, &p))
+		}
+
+		c.ActionPrompt(nextPlayer, allActions)
+		return nil
+	} else {
+		return endGame(c, gameId, nil)
+	}
 }
 
 func (h *Handler) Cleanup(gameId uuid.UUID) error {
-	err := C_PLAYER.For(gameId).Delete()
-	if err != nil {
-		return err
-	}
-
-	DECK.For(gameId).Clear()
-
-	err = db.ExpireCache(gameId, cacheExpireTime)
-	if err != nil {
-		return err
-	}
-	err = db.ExpireGameKey(gameId, "pr", cacheExpireTime)
-	if err != nil {
-		return err
-	}
-
-	err = db.DeleteGame(gameId)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return cleanup(gameId)
 }

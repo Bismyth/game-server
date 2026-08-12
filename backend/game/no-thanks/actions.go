@@ -3,6 +3,8 @@ package nothanks
 import (
 	"fmt"
 
+	"github.com/Bismyth/game-server/db"
+	"github.com/Bismyth/game-server/db/msg"
 	"github.com/Bismyth/game-server/interfaces"
 	"github.com/google/uuid"
 )
@@ -12,6 +14,8 @@ func handlePass(c interfaces.GameCommunication, gameId, playerId uuid.UUID) erro
 	if currentTokens <= 0 {
 		return fmt.Errorf("not enough tokens")
 	}
+
+	db.GameEvent(gameId, c).Log(msg.Msg().Player(playerId).Text(" has passed").String())
 
 	C_PLAYER.For(gameId).Next()
 	PD_TOKENS.MustSet(gameId, playerId, currentTokens-1)
@@ -28,6 +32,8 @@ func handleTake(c interfaces.GameCommunication, gameId, playerId uuid.UUID) erro
 
 	hand = append(hand, currentCard)
 	PD_CARDS.MustSet(gameId, playerId, hand)
+
+	db.GameEvent(gameId, c).Log(msg.Msg().Player(playerId).Text(" has taken ").Bold(msg.Int(currentCard)).String())
 
 	tokensOnCard := GD_TOKENS_ON_CARD.MustGet(gameId)
 	playerTokens := PD_TOKENS.MustGet(gameId, playerId)

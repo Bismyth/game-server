@@ -14,7 +14,7 @@ const GameRender = defineAsyncComponent({
       throw Error('no game type set')
     }
 
-    return import(`../components/games/${room.data.gameType}/GameDisplay.vue`)
+    return import(`@/game/${room.data.gameType}/components/GameDisplay.vue`)
   },
 
   // A component to use while the async component is loading

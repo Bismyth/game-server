@@ -63,6 +63,7 @@ type PublicGameState struct {
 	CurrentPlayer uuid.UUID           `json:"currentPlayer"`
 	CurrentRound  int                 `json:"currentRound"`
 	TotalRounds   int                 `json:"totalRounds"`
+	GameOver      bool                `json:"gameOver"`
 }
 
 type PreviousRound struct {
@@ -79,6 +80,7 @@ func loadPublic(gameId uuid.UUID) PublicGameState {
 	tOnCard := GD_TOKENS_ON_CARD.MustGet(gameId)
 	round := GD_ROUND.MustGet(gameId)
 	totalRounds := GD_TOTAL_ROUNDS.MustGet(gameId)
+	gameOver := GD_GAME_OVER.MustGet(gameId)
 
 	deckSize := int(DECK.For(gameId).Length())
 
@@ -105,6 +107,7 @@ func loadPublic(gameId uuid.UUID) PublicGameState {
 		CurrentPlayer: current,
 		CurrentRound:  round,
 		TotalRounds:   totalRounds,
+		GameOver:      gameOver,
 	}
 }
 
